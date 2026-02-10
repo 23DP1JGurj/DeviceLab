@@ -34,12 +34,12 @@ Sistēmas galvenais uzsvars ir uz:
 ---
 
 ## 🏗️ Projekta struktūra
-
+```
 DeviceLab/
 ├── backend/   # Laravel REST API
 ├── frontend/  # Vue lietotāja saskarne
 └── README.md  # Projekta apraksts
-
+```
 ---
 
 ## ⚙️ Backend
