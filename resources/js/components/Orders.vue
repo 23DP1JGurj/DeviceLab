@@ -241,6 +241,8 @@
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
+const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
+
 const orders = ref([])
 const total = ref(0)
 const listLoading = ref(false)
@@ -272,6 +274,65 @@ const filters = reactive({
 
 // edit state per order (status/diagnosis/work_log)
 const edit = reactive({})
+
+const OFFICE_TO_BRANCH_ID = {
+  'riga-centrs': 1,
+  'riga-center': 1,
+  'centrs': 1,
+  'center': 1,
+  'riga-purvciems': 2,
+  'purvciems': 2,
+  'riga-imanta': 2,
+  'imanta': 2,
+}
+
+const DEVICE_TYPE_TO_ID = {
+  phone: 1,
+}
+
+function normalizeDraftValue(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function resolveBranchIdFromOffice(office) {
+  const normalized = normalizeDraftValue(office)
+  return OFFICE_TO_BRANCH_ID[normalized] ?? null
+}
+
+function resolveDeviceIdFromDraft(deviceType) {
+  const normalized = normalizeDraftValue(deviceType)
+  return DEVICE_TYPE_TO_ID[normalized] ?? null
+}
+
+function applyDraft() {
+  const raw = localStorage.getItem(ORDER_DRAFT_STORAGE_KEY)
+  if (!raw) return
+
+  try {
+    const draft = JSON.parse(raw)
+
+    if (typeof draft?.problem_description === 'string' && draft.problem_description.trim()) {
+      form.problem_description = draft.problem_description.trim()
+    }
+
+    const branchId = resolveBranchIdFromOffice(draft?.office)
+    if (branchId) {
+      form.branch_id = branchId
+      filters.branch_id = branchId
+    }
+
+    if (draft?.device_id) {
+      form.device_id = Number(draft.device_id)
+    } else {
+      const deviceId = resolveDeviceIdFromDraft(draft?.device_type)
+      if (deviceId) form.device_id = deviceId
+    }
+
+    localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
+  } catch {
+    localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
+  }
+}
 
 function ensureEdit(order) {
   if (!edit[order.id]) {
@@ -428,7 +489,10 @@ async function deleteOrder(id) {
   }
 }
 
-onMounted(loadOrders)
+onMounted(() => {
+  applyDraft()
+  loadOrders()
+})
 </script>
 
 <style scoped>

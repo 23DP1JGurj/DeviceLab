@@ -142,41 +142,41 @@
                 <div class="grid2">
                   <div class="field">
                     <label for="dname">Vārds</label>
-                    <input class="input" id="dname" type="text" value="Aleksejs Ivanovs" disabled />
+                    <input class="input" id="dname" v-model="draft.name" type="text" />
                   </div>
                   <div class="field">
                     <label for="dphone">Tālrunis</label>
-                    <input class="input" id="dphone" type="text" value="+371 2000 1234" disabled />
+                    <input class="input" id="dphone" v-model="draft.phone" type="text" />
                   </div>
                 </div>
 
                 <div class="grid2">
                   <div class="field">
                     <label for="dtype">Ierīces tips</label>
-                    <select class="select" id="dtype" disabled>
-                      <option selected>Telefons</option>
-                      <option>Portatīvais dators</option>
-                      <option>Planšete</option>
-                      <option>Cits</option>
+                    <select class="select" id="dtype" v-model="draft.device_type">
+                      <option value="phone">Telefons</option>
+                      <option value="laptop">Portatīvais dators</option>
+                      <option value="tablet">Planšete</option>
+                      <option value="other">Cits</option>
                     </select>
                   </div>
 
                   <div class="field">
                     <label for="doffice">Filiāle (lokācija)</label>
-                    <select class="select" id="doffice" disabled>
-                      <option selected>Rīga — Centrs</option>
-                      <option>Rīga — Purvciems</option>
+                    <select class="select" id="doffice" v-model="draft.office">
+                      <option value="riga-centrs">Rīga — Centrs</option>
+                      <option value="riga-purvciems">Rīga — Purvciems</option>
                     </select>
                   </div>
                 </div>
 
                 <div class="field">
                   <label for="dissue">Problēmas apraksts</label>
-                  <textarea class="textarea" id="dissue" disabled>Neieslēdzas pēc uzlādes. Dažreiz mirgo logo un atkal izslēdzas.</textarea>
+                  <textarea class="textarea" id="dissue" v-model="draft.problem_description"></textarea>
                 </div>
 
                 <div class="demo-actions">
-                  <a class="btn dark" href="/orders" id="goOrder">Pāriet uz pieteikuma noformēšanu</a>
+                  <button class="btn dark" type="button" id="goOrder" @click="goToOrders">Pāriet uz pieteikuma noformēšanu</button>
                   <!-- Šī ir demonstrācija. Reālo nosūtīšanu pieslēgsim vēlāk. -->
                 </div>
               </div>
@@ -611,10 +611,27 @@
 
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 
 const root = ref(null)
+const router = useRouter()
+
+const draft = ref({
+  name: 'Aleksejs Ivanovs',
+  phone: '+371 2000 1234',
+  device_type: 'phone',
+  office: 'riga-centrs',
+  problem_description: 'Neieslēdzas pēc uzlādes. Dažreiz mirgo logo un atkal izslēdzas.',
+})
 
 const cleanups = []
+
+function goToOrders() {
+  localStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft.value))
+  router.push('/orders')
+}
 
 onMounted(() => {
   const el = root.value
