@@ -14,6 +14,9 @@
         <a href="#reviews">Atsauksmes</a>
         <a href="#faq">FAQ</a>
         <a href="#contacts">Kontakti</a>
+        <a :href="currentRole === 'staff' ? '/orders' : '/staff/orders'" @click.prevent="goToRolePanel">
+          {{ currentRole === 'staff' ? 'Klienta panelis' : 'Staff panelis' }}
+        </a>
         <a href="/orders" style="background: rgba(255,255,255,.08);">Noformēt pieteikumu</a>
       </div>
     </div>
@@ -41,6 +44,9 @@
 
         <div class="cta">
           <button class="btn burger" id="burger" aria-label="Atvērt izvēlni">☰</button>
+          <button class="btn" type="button" @click="goToRolePanel">
+            {{ currentRole === 'staff' ? 'Klienta panelis' : 'Staff panelis' }}
+          </button>
           <a class="btn primary" href="/orders">Noformēt pieteikumu</a>
         </div>
       </div>
@@ -614,9 +620,11 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
+const ROLE_STORAGE_KEY = 'devicelab:role'
 
 const root = ref(null)
 const router = useRouter()
+const currentRole = ref('client')
 
 const draft = ref({
   name: 'Aleksejs Ivanovs',
@@ -628,12 +636,35 @@ const draft = ref({
 
 const cleanups = []
 
+function setRole(role) {
+  currentRole.value = role
+  localStorage.setItem(ROLE_STORAGE_KEY, role)
+}
+
+function syncRole() {
+  currentRole.value = localStorage.getItem(ROLE_STORAGE_KEY) || 'client'
+}
+
 function goToOrders() {
+  setRole('client')
   localStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft.value))
   router.push('/orders')
 }
 
+function goToRolePanel() {
+  if (currentRole.value === 'staff') {
+    setRole('client')
+    router.push('/orders')
+    return
+  }
+
+  setRole('staff')
+  router.push('/staff/orders')
+}
+
 onMounted(() => {
+  syncRole()
+
   const el = root.value
   if (!el) return
 

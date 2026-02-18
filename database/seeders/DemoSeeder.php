@@ -3,26 +3,48 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1) User id=1 (клиент)
         DB::table('users')->updateOrInsert(
-            ['id' => 1],
+            ['email' => 'admin@devicelab.local'],
             [
-                'name' => 'Demo User',
-                'email' => 'demo@devicelab.local',
+                'name' => 'Admin User',
                 'password' => Hash::make('password'),
+                'role' => 'admin',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
         );
 
-        // 2) Branches (добавили 2-й филиал)
+        DB::table('users')->updateOrInsert(
+            ['email' => 'staff@devicelab.local'],
+            [
+                'name' => 'Staff User',
+                'password' => Hash::make('password'),
+                'role' => 'staff',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        DB::table('users')->updateOrInsert(
+            ['email' => 'demo@devicelab.local'],
+            [
+                'name' => 'Demo User',
+                'password' => Hash::make('password'),
+                'role' => 'client',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        $clientId = DB::table('users')->where('email', 'demo@devicelab.local')->value('id');
+
         DB::table('branches')->insertOrIgnore([
             [
                 'id' => 1,
@@ -48,12 +70,11 @@ class DemoSeeder extends Seeder
             ],
         ]);
 
-        // 3) Services
         DB::table('services')->insertOrIgnore([
             [
                 'id' => 1,
                 'name' => 'Diagnostika',
-                'description' => 'Ierīces diagnostika',
+                'description' => 'Ierices diagnostika',
                 'base_price' => 15.00,
                 'estimated_minutes' => 30,
                 'is_active' => 1,
@@ -62,8 +83,8 @@ class DemoSeeder extends Seeder
             ],
             [
                 'id' => 2,
-                'name' => 'Ekrāna maiņa',
-                'description' => 'Ekrāna nomaiņa (darbs)',
+                'name' => 'Ekrana maina',
+                'description' => 'Ekrana nomaina (darbs)',
                 'base_price' => 45.00,
                 'estimated_minutes' => 90,
                 'is_active' => 1,
@@ -72,13 +93,12 @@ class DemoSeeder extends Seeder
             ],
         ]);
 
-        // 4) Parts
         DB::table('parts')->insertOrIgnore([
             [
                 'id' => 1,
-                'name' => 'iPhone ekrāns',
+                'name' => 'iPhone ekrans',
                 'sku' => 'IP-SCREEN-001',
-                'description' => 'Rezerves ekrāns',
+                'description' => 'Rezerves ekrans',
                 'unit_price' => 80.00,
                 'stock_qty' => 5,
                 'min_stock_qty' => 1,
@@ -88,11 +108,10 @@ class DemoSeeder extends Seeder
             ],
         ]);
 
-        // 5) Devices (добавили 2-й девайс)
         DB::table('devices')->insertOrIgnore([
             [
                 'id' => 1,
-                'user_id' => 1,
+                'user_id' => $clientId,
                 'type' => 'phone',
                 'brand' => 'Apple',
                 'model' => 'iPhone 12',
@@ -103,7 +122,7 @@ class DemoSeeder extends Seeder
             ],
             [
                 'id' => 2,
-                'user_id' => 1,
+                'user_id' => $clientId,
                 'type' => 'phone',
                 'brand' => 'Samsung',
                 'model' => 'Galaxy S21',
