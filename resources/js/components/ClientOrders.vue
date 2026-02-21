@@ -259,7 +259,7 @@ function formatDate(s) {
 async function loadOrders() {
   listLoading.value = true
   try {
-    const res = await fetch('/api/my/orders', {
+    const res = await fetch('/api/orders', {
       headers: authHeaders(),
     })
     const json = await res.json()

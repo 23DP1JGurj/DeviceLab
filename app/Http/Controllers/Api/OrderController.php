@@ -15,6 +15,11 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    public function clientIndex(Request $request)
+    {
+        return $this->buildOrdersQuery($request, $request->user(), true)->latest()->paginate(10);
+    }
+
     public function index(Request $request)
     {
         return $this->buildOrdersQuery($request, $request->user())->latest()->paginate(10);
@@ -22,7 +27,7 @@ class OrderController extends Controller
 
     public function myOrders(Request $request)
     {
-        return $this->buildOrdersQuery($request, $request->user(), true)->latest()->paginate(10);
+        return $this->clientIndex($request);
     }
 
     public function store(Request $request)
@@ -93,14 +98,14 @@ class OrderController extends Controller
 
     public function show(Request $request, Order $order)
     {
-        $this->ensureUserCanViewOrder($request->user(), $order);
+        $this->authorize('view', $order);
 
         return $order->fresh()->load(['items.service', 'items.part']);
     }
 
     public function update(Request $request, Order $order)
     {
-        $this->ensureUserCanManageOrders($request->user());
+        $this->authorize('update', $order);
 
         $data = $request->validate([
             'status' => ['sometimes', 'in:new,confirmed,in_progress,waiting_parts,done,cancelled'],
@@ -115,7 +120,7 @@ class OrderController extends Controller
 
     public function destroy(Request $request, Order $order)
     {
-        $this->ensureUserCanManageOrders($request->user());
+        $this->authorize('delete', $order);
 
         $order->delete();
 
@@ -162,24 +167,5 @@ class OrderController extends Controller
                 'device_id' => ['Selected device does not belong to the current client.'],
             ]);
         }
-    }
-
-    private function ensureUserCanViewOrder(User $user, Order $order): void
-    {
-        if ($this->canManageAllOrders($user)) {
-            return;
-        }
-
-        abort_if($order->user_id !== $user->id, 403, 'You cannot view this order.');
-    }
-
-    private function ensureUserCanManageOrders(User $user): void
-    {
-        abort_if(! $this->canManageAllOrders($user), 403, 'You cannot manage orders.');
-    }
-
-    private function canManageAllOrders(User $user): bool
-    {
-        return $user->hasAnyRole([User::ROLE_STAFF, User::ROLE_ADMIN]);
     }
 }

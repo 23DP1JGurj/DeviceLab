@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\Order;
+use App\Models\User;
+
+class OrderPolicy
+{
+    public function view(User $user, Order $order): bool
+    {
+        if ($user->hasAnyRole([User::ROLE_STAFF, User::ROLE_ADMIN])) {
+            return true;
+        }
+
+        return $order->user_id === $user->id;
+    }
+
+    public function update(User $user, Order $order): bool
+    {
+        return $user->hasAnyRole([User::ROLE_STAFF, User::ROLE_ADMIN]);
+    }
+
+    public function delete(User $user, Order $order): bool
+    {
+        return $user->hasAnyRole([User::ROLE_STAFF, User::ROLE_ADMIN]);
+    }
+}

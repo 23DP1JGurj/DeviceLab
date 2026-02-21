@@ -52,7 +52,7 @@ Route::middleware(['auth:sanctum', 'role:client,staff,admin'])->group(function (
     });
 
     Route::get('/my/orders', [OrderController::class, 'myOrders']);
-    Route::get('/orders', [OrderController::class, 'index']);
+    Route::get('/orders', [OrderController::class, 'clientIndex']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
 });
