@@ -3,7 +3,7 @@
     <div class="topbar">
       <div class="titleBlock">
         <h1 class="h1">Staff Orders</h1>
-        <div class="subtitle">DeviceLab staff demo panel</div>
+        <div class="subtitle">DeviceLab staff panel</div>
       </div>
 
       <div class="topActions">
@@ -63,7 +63,11 @@
     </div>
 
     <div v-else>
-      <div v-if="orders.length === 0" class="card">
+      <div v-if="listError" class="card">
+        <div class="msg">{{ listError }}</div>
+      </div>
+
+      <div v-else-if="orders.length === 0" class="card">
         <div class="muted">No orders yet.</div>
       </div>
 
@@ -166,15 +170,14 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { authHeaders, ensureRoleSession } from '../lib/auth'
-
-const ROLE_STORAGE_KEY = 'devicelab:role'
+import { apiFetch, extractErrorMessage } from '../lib/auth'
 
 const router = useRouter()
 
 const orders = ref([])
 const total = ref(0)
 const listLoading = ref(false)
+const listError = ref('')
 
 const savingId = ref(null)
 const saveError = ref('')
@@ -189,13 +192,7 @@ const filters = reactive({
 
 const edit = reactive({})
 
-function setRole(role) {
-  localStorage.setItem(ROLE_STORAGE_KEY, role)
-}
-
-async function goToClientOrders() {
-  await ensureRoleSession('client')
-  setRole('client')
+function goToClientOrders() {
   router.push('/orders')
 }
 
@@ -230,15 +227,28 @@ function buildOrdersUrl() {
 
 async function loadOrders() {
   listLoading.value = true
+  listError.value = ''
   try {
-    const res = await fetch(buildOrdersUrl(), {
-      headers: authHeaders(),
-    })
+    const res = await apiFetch(buildOrdersUrl())
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        await router.push({ path: '/login', query: { redirect: '/staff/orders' } })
+        return
+      }
+
+      throw new Error(await extractErrorMessage(res, 'Unable to load orders.'))
+    }
+
     const json = await res.json()
     orders.value = json.data ?? []
     total.value = json.total ?? orders.value.length
 
     for (const order of orders.value) ensureEdit(order)
+  } catch (e) {
+    orders.value = []
+    total.value = 0
+    listError.value = (e?.message || 'Unable to load orders.').slice(0, 260)
   } finally {
     listLoading.value = false
   }
@@ -264,15 +274,18 @@ async function saveOrder(id) {
       work_log: edit[id].work_log,
     }
 
-    const res = await fetch(`/api/staff/orders/${id}`, {
+    const res = await apiFetch(`/api/staff/orders/${id}`, {
       method: 'PATCH',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify(payload),
+      json: payload,
     })
 
     if (!res.ok) {
-      const txt = await res.text()
-      throw new Error(txt)
+      if (res.status === 401) {
+        await router.push({ path: '/login', query: { redirect: '/staff/orders' } })
+        return
+      }
+
+      throw new Error(await extractErrorMessage(res, 'Unable to save order.'))
     }
 
     saveOkId.value = id
@@ -297,13 +310,16 @@ async function deleteOrder(id) {
   saveOkId.value = null
 
   try {
-    const res = await fetch(`/api/staff/orders/${id}`, {
+    const res = await apiFetch(`/api/staff/orders/${id}`, {
       method: 'DELETE',
-      headers: authHeaders(),
     })
     if (!res.ok) {
-      const txt = await res.text()
-      throw new Error(txt)
+      if (res.status === 401) {
+        await router.push({ path: '/login', query: { redirect: '/staff/orders' } })
+        return
+      }
+
+      throw new Error(await extractErrorMessage(res, 'Unable to delete order.'))
     }
     await loadOrders()
   } catch (e) {
@@ -315,9 +331,7 @@ async function deleteOrder(id) {
 }
 
 onMounted(async () => {
-  await ensureRoleSession('staff')
-  setRole('staff')
-  loadOrders()
+  await loadOrders()
 })
 </script>
 

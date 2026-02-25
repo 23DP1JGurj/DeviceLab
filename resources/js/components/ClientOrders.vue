@@ -3,12 +3,12 @@
     <div class="topbar">
       <div class="titleBlock">
         <h1 class="h1">My Orders</h1>
-        <div class="subtitle">DeviceLab client demo panel</div>
+        <div class="subtitle">DeviceLab client panel</div>
       </div>
 
       <div class="topActions">
         <RouterLink class="btn btnGhost" to="/">← Home</RouterLink>
-        <button class="btn btnSoft" type="button" @click="goToStaffPanel">Staff panel</button>
+        <button v-if="canAccessStaffPanel" class="btn btnSoft" type="button" @click="goToStaffPanel">Staff panel</button>
         <button class="btn btnSoft" type="button" @click="loadOrders" :disabled="listLoading">
           {{ listLoading ? 'Loading...' : 'Refresh' }}
         </button>
@@ -97,7 +97,11 @@
     </div>
 
     <div v-else>
-      <div v-if="orders.length === 0" class="card">
+      <div v-if="listError" class="card">
+        <div class="msg">{{ listError }}</div>
+      </div>
+
+      <div v-else-if="orders.length === 0" class="card">
         <div class="muted">No orders yet.</div>
       </div>
 
@@ -151,16 +155,17 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { authHeaders, ensureRoleSession } from '../lib/auth'
+import { apiFetch, extractErrorMessage, getAuthUser, hasAnyRole } from '../lib/auth'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
-const ROLE_STORAGE_KEY = 'devicelab:role'
 
 const router = useRouter()
+const canAccessStaffPanel = hasAnyRole(getAuthUser(), ['staff', 'admin'])
 
 const orders = ref([])
 const total = ref(0)
 const listLoading = ref(false)
+const listError = ref('')
 
 const creating = ref(false)
 const createError = ref('')
@@ -191,13 +196,7 @@ const DEVICE_TYPE_TO_ID = {
   phone: 1,
 }
 
-function setRole(role) {
-  localStorage.setItem(ROLE_STORAGE_KEY, role)
-}
-
-async function goToStaffPanel() {
-  await ensureRoleSession('staff')
-  setRole('staff')
+function goToStaffPanel() {
   router.push('/staff/orders')
 }
 
@@ -258,13 +257,26 @@ function formatDate(s) {
 
 async function loadOrders() {
   listLoading.value = true
+  listError.value = ''
   try {
-    const res = await fetch('/api/orders', {
-      headers: authHeaders(),
-    })
+    const res = await apiFetch('/api/orders')
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        await router.push({ path: '/login', query: { redirect: '/orders' } })
+        return
+      }
+
+      throw new Error(await extractErrorMessage(res, 'Unable to load orders.'))
+    }
+
     const json = await res.json()
     orders.value = json.data ?? []
     total.value = json.total ?? orders.value.length
+  } catch (e) {
+    orders.value = []
+    total.value = 0
+    listError.value = (e?.message || 'Unable to load orders.').slice(0, 260)
   } finally {
     listLoading.value = false
   }
@@ -288,15 +300,18 @@ async function createOrder() {
       })),
     }
 
-    const res = await fetch('/api/orders', {
+    const res = await apiFetch('/api/orders', {
       method: 'POST',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify(payload),
+      json: payload,
     })
 
     if (!res.ok) {
-      const txt = await res.text()
-      throw new Error(txt)
+      if (res.status === 401) {
+        await router.push({ path: '/login', query: { redirect: '/orders' } })
+        return
+      }
+
+      throw new Error(await extractErrorMessage(res, 'Unable to create order.'))
     }
 
     const created = await res.json()
@@ -310,10 +325,8 @@ async function createOrder() {
 }
 
 onMounted(async () => {
-  await ensureRoleSession('client')
-  setRole('client')
   applyDraft()
-  loadOrders()
+  await loadOrders()
 })
 </script>
 

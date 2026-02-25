@@ -14,10 +14,9 @@
         <a href="#reviews">Atsauksmes</a>
         <a href="#faq">FAQ</a>
         <a href="#contacts">Kontakti</a>
-        <a :href="currentRole === 'staff' ? '/orders' : '/staff/orders'" @click.prevent="goToRolePanel">
-          {{ currentRole === 'staff' ? 'Klienta panelis' : 'Staff panelis' }}
-        </a>
-        <a href="/orders" style="background: rgba(255,255,255,.08);">Noformēt pieteikumu</a>
+        <a v-if="canAccessStaffPanel" href="/staff/orders" @click.prevent="goToStaffOrders">Staff panelis</a>
+        <a v-else-if="!isLoggedIn" href="/login" @click.prevent="goToLogin">Ienākt</a>
+        <a href="/orders" @click.prevent="goToOrderPage" style="background: rgba(255,255,255,.08);">Noformēt pieteikumu</a>
       </div>
     </div>
   </div>
@@ -44,10 +43,9 @@
 
         <div class="cta">
           <button class="btn burger" id="burger" aria-label="Atvērt izvēlni">☰</button>
-          <button class="btn" type="button" @click="goToRolePanel">
-            {{ currentRole === 'staff' ? 'Klienta panelis' : 'Staff panelis' }}
-          </button>
-          <a class="btn primary" href="/orders">Noformēt pieteikumu</a>
+          <a v-if="canAccessStaffPanel" class="btn" href="/staff/orders" @click.prevent="goToStaffOrders">Staff panelis</a>
+          <a v-else-if="!isLoggedIn" class="btn" href="/login" @click.prevent="goToLogin">Ienākt</a>
+          <a class="btn primary" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
         </div>
       </div>
     </div>
@@ -121,7 +119,7 @@
           <p class="lead">Tehnikas remonts Rīgā — uzticams serviss netālu.</p>
 
           <div class="hero-actions">
-            <a class="btn light" href="/orders">Noformēt pieteikumu</a>
+            <a class="btn light" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
           </div>
 
           <!-- Noņemts garais teksts un ikonu bloki, lai pirmais ekrāns būtu lakonisks -->
@@ -388,7 +386,7 @@
             <li>Ieteikumi remontam</li>
           </ul>
           <div class="price-actions">
-            <a class="btn dark" href="/orders">Noformēt pieteikumu</a>
+            <a class="btn dark" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
             <a class="btn" href="#contacts">Kontakti</a>
           </div>
         </div>
@@ -406,7 +404,7 @@
             <li>Skāriena un attēla pārbaude</li>
           </ul>
           <div class="price-actions">
-            <a class="btn dark" href="/orders">Noformēt pieteikumu</a>
+            <a class="btn dark" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
             <a class="btn" href="#services">Pakalpojumi</a>
           </div>
         </div>
@@ -424,7 +422,7 @@
             <li>Temperatūru tests pēc darba</li>
           </ul>
           <div class="price-actions">
-            <a class="btn dark" href="/orders">Noformēt pieteikumu</a>
+            <a class="btn dark" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
             <a class="btn" href="#reviews">Atsauksmes</a>
           </div>
         </div>
@@ -616,15 +614,15 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { clearAuthSession, getAuthToken, getAuthUser, hasAnyRole, syncAuthUser } from '../lib/auth'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
-const ROLE_STORAGE_KEY = 'devicelab:role'
 
 const root = ref(null)
 const router = useRouter()
-const currentRole = ref('client')
+const authUser = ref(getAuthUser())
 
 const draft = ref({
   name: 'Aleksejs Ivanovs',
@@ -635,35 +633,55 @@ const draft = ref({
 })
 
 const cleanups = []
+const isLoggedIn = computed(() => Boolean(authUser.value))
+const canAccessStaffPanel = computed(() => hasAnyRole(authUser.value, ['staff', 'admin']))
 
-function setRole(role) {
-  currentRole.value = role
-  localStorage.setItem(ROLE_STORAGE_KEY, role)
-}
-
-function syncRole() {
-  currentRole.value = localStorage.getItem(ROLE_STORAGE_KEY) || 'client'
-}
-
-function goToOrders() {
-  setRole('client')
+function saveDraft() {
   localStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft.value))
-  router.push('/orders')
 }
 
-function goToRolePanel() {
-  if (currentRole.value === 'staff') {
-    setRole('client')
+function goToLogin() {
+  router.push({ path: '/login', query: { redirect: '/orders' } })
+}
+
+function goToOrderPage() {
+  if (isLoggedIn.value) {
     router.push('/orders')
     return
   }
 
-  setRole('staff')
+  goToLogin()
+}
+
+function goToOrders() {
+  saveDraft()
+  router.push('/orders')
+}
+
+function goToStaffOrders() {
   router.push('/staff/orders')
 }
 
 onMounted(() => {
-  syncRole()
+  const syncSessionState = async () => {
+    const token = getAuthToken()
+
+    if (!token) {
+      authUser.value = null
+      return
+    }
+
+    authUser.value = getAuthUser()
+
+    try {
+      authUser.value = await syncAuthUser()
+    } catch {
+      clearAuthSession()
+      authUser.value = null
+    }
+  }
+
+  void syncSessionState()
 
   const el = root.value
   if (!el) return

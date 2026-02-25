@@ -1,11 +1,8 @@
 export const AUTH_TOKEN_KEY = 'devicelab:authToken'
 export const AUTH_USER_KEY = 'devicelab:authUser'
 
-const DEMO_CREDENTIALS = {
-  client: { email: 'demo@devicelab.local', password: 'password' },
-  staff: { email: 'staff@devicelab.local', password: 'password' },
-  admin: { email: 'admin@devicelab.local', password: 'password' },
-}
+export const ORDER_ROLES = ['client', 'staff', 'admin']
+export const STAFF_ROLES = ['staff', 'admin']
 
 export function getAuthToken() {
   return localStorage.getItem(AUTH_TOKEN_KEY) || ''
@@ -22,9 +19,26 @@ export function getAuthUser() {
   }
 }
 
-export function setAuthSession(payload) {
-  if (payload?.token) localStorage.setItem(AUTH_TOKEN_KEY, payload.token)
-  if (payload?.user) localStorage.setItem(AUTH_USER_KEY, JSON.stringify(payload.user))
+export function getAuthRole() {
+  return getAuthUser()?.role || ''
+}
+
+export function setAuthSession(payload = {}) {
+  if (payload.token !== undefined) {
+    if (payload.token) {
+      localStorage.setItem(AUTH_TOKEN_KEY, payload.token)
+    } else {
+      localStorage.removeItem(AUTH_TOKEN_KEY)
+    }
+  }
+
+  if (payload.user !== undefined) {
+    if (payload.user) {
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(payload.user))
+    } else {
+      localStorage.removeItem(AUTH_USER_KEY)
+    }
+  }
 }
 
 export function clearAuthSession() {
@@ -32,53 +46,112 @@ export function clearAuthSession() {
   localStorage.removeItem(AUTH_USER_KEY)
 }
 
-export function authHeaders(extraHeaders = {}) {
-  const token = getAuthToken()
-  const headers = {
-    Accept: 'application/json',
-    ...extraHeaders,
-  }
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
-  return headers
+export function hasAnyRole(user, roles = []) {
+  if (!user?.role || roles.length === 0) return false
+  return roles.includes(user.role)
 }
 
-export async function loginRole(role) {
-  const credentials = DEMO_CREDENTIALS[role]
+export function sanitizeRedirectPath(value) {
+  if (typeof value !== 'string') return ''
+  if (!value.startsWith('/') || value.startsWith('//')) return ''
+  return value
+}
 
-  if (!credentials) {
-    throw new Error(`Unsupported role: ${role}`)
+export function defaultRouteForUser(user) {
+  return hasAnyRole(user, STAFF_ROLES) ? '/staff/orders' : '/orders'
+}
+
+export function resolveRedirectPath(user, redirect) {
+  const safeRedirect = sanitizeRedirectPath(redirect)
+
+  if (!safeRedirect) {
+    return defaultRouteForUser(user)
   }
 
-  const res = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(credentials),
+  if (safeRedirect.startsWith('/staff/orders') && !hasAnyRole(user, STAFF_ROLES)) {
+    return defaultRouteForUser(user)
+  }
+
+  if (safeRedirect.startsWith('/orders') && !hasAnyRole(user, ORDER_ROLES)) {
+    return '/login'
+  }
+
+  return safeRedirect
+}
+
+export async function apiFetch(url, options = {}) {
+  const { headers: rawHeaders = {}, json, body, ...rest } = options
+  const headers = new Headers(rawHeaders)
+  const token = getAuthToken()
+
+  if (!headers.has('Accept')) {
+    headers.set('Accept', 'application/json')
+  }
+
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  let finalBody = body
+
+  if (json !== undefined) {
+    finalBody = JSON.stringify(json)
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json')
+    }
+  }
+
+  const response = await fetch(url, {
+    ...rest,
+    headers,
+    body: finalBody,
   })
 
-  if (!res.ok) {
-    const txt = await res.text()
-    throw new Error(txt || 'Unable to login.')
+  if (response.status === 401) {
+    clearAuthSession()
   }
 
-  const json = await res.json()
-  setAuthSession(json)
-
-  return json
+  return response
 }
 
-export async function ensureRoleSession(role) {
-  const token = getAuthToken()
-  const user = getAuthUser()
+export async function extractErrorMessage(response, fallback = 'Request failed.') {
+  const text = await response.text()
 
-  if (token && user?.role === role) {
-    return { token, user }
+  if (!text) {
+    return fallback
   }
 
-  clearAuthSession()
+  try {
+    const payload = JSON.parse(text)
 
-  return loginRole(role)
+    if (typeof payload?.message === 'string' && payload.message.trim()) {
+      return payload.message
+    }
+
+    const validationErrors = Object.values(payload?.errors || {}).flat()
+    if (validationErrors.length > 0) {
+      return String(validationErrors[0])
+    }
+  } catch {
+    return text.slice(0, 260)
+  }
+
+  return text.slice(0, 260) || fallback
+}
+
+export async function fetchMe() {
+  const response = await apiFetch('/api/auth/me')
+
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response, 'Unable to fetch current user.'))
+  }
+
+  const payload = await response.json()
+  return payload?.user ?? null
+}
+
+export async function syncAuthUser() {
+  const user = await fetchMe()
+  setAuthSession({ user })
+  return user
 }
