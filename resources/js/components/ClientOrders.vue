@@ -236,8 +236,6 @@ function applyDraft() {
       const deviceId = resolveDeviceIdFromDraft(draft?.device_type)
       if (deviceId) form.device_id = deviceId
     }
-
-    localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
   } catch {
     localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
   }
@@ -315,6 +313,7 @@ async function createOrder() {
     }
 
     const created = await res.json()
+    localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
     createSuccess.value = `Created: ${created.order_number}`
     await loadOrders()
   } catch (e) {

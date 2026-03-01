@@ -135,11 +135,9 @@
                 <div style="opacity:.7;font-weight:700;">devicelab.lv</div>
               </div>
 
-              <!-- DEMO (nav īsta forma) -->
-              <div class="demo-card demo-only">
+              <div class="demo-card">
                 <div>
                   <div class="demo-title">Pieteikumu noformēt — vienkārši</div>
-                  <!-- Aizpildījuma piemērs. Nākotnē poga zemāk vedīs uz īstu pasūtījuma noformēšanu. -->
                   <div class="demo-sub">Aizpildi datus — un mēs ar tevi sazināsimies.</div>
                 </div>
 
@@ -181,7 +179,6 @@
 
                 <div class="demo-actions">
                   <button class="btn dark" type="button" id="goOrder" @click="goToOrders">Pāriet uz pieteikuma noformēšanu</button>
-                  <!-- Šī ir demonstrācija. Reālo nosūtīšanu pieslēgsim vēlāk. -->
                 </div>
               </div>
             </div>
