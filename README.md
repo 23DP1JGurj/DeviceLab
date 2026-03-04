@@ -91,3 +91,22 @@ cp .env.example .env
 php artisan key:generate
 php artisan migrate
 php artisan serve
+```
+
+## Auth demo
+
+Session auth is used for the frontend and API requests. Frontend fetch calls should use `credentials: 'same-origin'`.
+
+Test accounts:
+- `admin@devicelab.local` / `Admin123!`
+- `staff@devicelab.local` / `Staff123!`
+- `client@devicelab.local` / `Client123!`
+
+Quick start:
+
+```bash
+php artisan migrate
+php artisan db:seed
+php artisan serve
+npm run dev
+```

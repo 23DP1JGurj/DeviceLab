@@ -155,12 +155,12 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { apiFetch, extractErrorMessage, getAuthUser, hasAnyRole } from '../lib/auth'
+import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 
 const router = useRouter()
-const canAccessStaffPanel = hasAnyRole(getAuthUser(), ['staff', 'admin'])
+const canAccessStaffPanel = hasAnyRole(currentUser.value, ['staff', 'admin'])
 
 const orders = ref([])
 const total = ref(0)
@@ -257,7 +257,7 @@ async function loadOrders() {
   listLoading.value = true
   listError.value = ''
   try {
-    const res = await apiFetch('/api/orders')
+    const res = await authFetch('/api/client/orders')
 
     if (!res.ok) {
       if (res.status === 401) {
@@ -298,7 +298,7 @@ async function createOrder() {
       })),
     }
 
-    const res = await apiFetch('/api/orders', {
+    const res = await authFetch('/api/orders', {
       method: 'POST',
       json: payload,
     })
@@ -324,6 +324,7 @@ async function createOrder() {
 }
 
 onMounted(async () => {
+  await initAuth().catch(() => null)
   applyDraft()
   await loadOrders()
 })

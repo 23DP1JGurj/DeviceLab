@@ -1,49 +1,16 @@
 <?php
 
 namespace Database\Seeders;
-
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('users')->updateOrInsert(
-            ['email' => 'admin@devicelab.local'],
-            [
-                'name' => 'Admin User',
-                'password' => Hash::make('password'),
-                'role' => 'admin',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        DB::table('users')->updateOrInsert(
-            ['email' => 'staff@devicelab.local'],
-            [
-                'name' => 'Staff User',
-                'password' => Hash::make('password'),
-                'role' => 'staff',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        DB::table('users')->updateOrInsert(
-            ['email' => 'demo@devicelab.local'],
-            [
-                'name' => 'Demo User',
-                'password' => Hash::make('password'),
-                'role' => 'client',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        $clientId = DB::table('users')->where('email', 'demo@devicelab.local')->value('id');
+        $clientId = DB::table('users')
+            ->where('email', 'client@devicelab.local')
+            ->value('id');
 
         DB::table('branches')->insertOrIgnore([
             [

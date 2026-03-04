@@ -170,7 +170,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { apiFetch, extractErrorMessage } from '../lib/auth'
+import { authFetch, extractErrorMessage, initAuth } from '../auth'
 
 const router = useRouter()
 
@@ -229,7 +229,7 @@ async function loadOrders() {
   listLoading.value = true
   listError.value = ''
   try {
-    const res = await apiFetch(buildOrdersUrl())
+    const res = await authFetch(buildOrdersUrl())
 
     if (!res.ok) {
       if (res.status === 401) {
@@ -274,7 +274,7 @@ async function saveOrder(id) {
       work_log: edit[id].work_log,
     }
 
-    const res = await apiFetch(`/api/staff/orders/${id}`, {
+    const res = await authFetch(`/api/staff/orders/${id}`, {
       method: 'PATCH',
       json: payload,
     })
@@ -310,7 +310,7 @@ async function deleteOrder(id) {
   saveOkId.value = null
 
   try {
-    const res = await apiFetch(`/api/staff/orders/${id}`, {
+    const res = await authFetch(`/api/staff/orders/${id}`, {
       method: 'DELETE',
     })
     if (!res.ok) {
@@ -331,6 +331,7 @@ async function deleteOrder(id) {
 }
 
 onMounted(async () => {
+  await initAuth().catch(() => null)
   await loadOrders()
 })
 </script>

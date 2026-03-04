@@ -25,25 +25,20 @@
         </button>
       </form>
 
-      <div class="footerLine">
-        <span>Nav konta?</span>
-        <RouterLink :to="registerLink">Reģistrēties</RouterLink>
+      <div class="accounts">
+        <div class="accountsTitle">Demo konti</div>
+        <div class="accountLine"><b>admin</b> admin@devicelab.local / Admin123!</div>
+        <div class="accountLine"><b>staff</b> staff@devicelab.local / Staff123!</div>
+        <div class="accountLine"><b>client</b> client@devicelab.local / Client123!</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import {
-  apiFetch,
-  extractErrorMessage,
-  resolveRedirectPath,
-  sanitizeRedirectPath,
-  setAuthSession,
-  syncAuthUser,
-} from '../lib/auth'
+import { login, resolveRedirectPath, sanitizeRedirectPath } from '../auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,40 +51,13 @@ const form = reactive({
 const loading = ref(false)
 const error = ref('')
 
-const redirectTarget = computed(() => sanitizeRedirectPath(route.query.redirect))
-const registerLink = computed(() => {
-  const redirect = redirectTarget.value
-  return redirect ? { path: '/register', query: { redirect } } : { path: '/register' }
-})
-
 async function submit() {
   loading.value = true
   error.value = ''
 
   try {
-    const response = await apiFetch('/api/auth/login', {
-      method: 'POST',
-      json: {
-        email: form.email,
-        password: form.password,
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, 'Unable to login.'))
-    }
-
-    const payload = await response.json()
-    setAuthSession({ token: payload?.token })
-
-    const user = await syncAuthUser().catch(() => payload?.user ?? null)
-
-    if (!user) {
-      throw new Error('Unable to load current user.')
-    }
-
-    setAuthSession({ token: payload?.token, user })
-    await router.push(resolveRedirectPath(user, redirectTarget.value))
+    const user = await login(form.email, form.password)
+    await router.push(resolveRedirectPath(user, sanitizeRedirectPath(route.query.redirect)))
   } catch (err) {
     error.value = err?.message || 'Unable to login.'
   } finally {
@@ -216,17 +184,24 @@ async function submit() {
   border: 1px solid rgba(239, 68, 68, 0.18);
 }
 
-.footerLine {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+.accounts {
   margin-top: 18px;
-  color: #64748b;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.12);
 }
 
-.footerLine a {
-  color: #1d4ed8;
-  font-weight: 700;
-  text-decoration: none;
+.accountsTitle {
+  margin-bottom: 8px;
+  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.accountLine {
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.6;
 }
 </style>

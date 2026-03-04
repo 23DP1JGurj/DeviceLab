@@ -14,8 +14,12 @@
         <a href="#reviews">Atsauksmes</a>
         <a href="#faq">FAQ</a>
         <a href="#contacts">Kontakti</a>
+        <div v-if="isLoggedIn" style="padding:12px 12px; font-weight:700; color:rgba(255,255,255,.92);">
+          Profils: {{ authUser?.name }} ({{ authUser?.role }})
+        </div>
         <a v-if="canAccessStaffPanel" href="/staff/orders" @click.prevent="goToStaffOrders">Staff panelis</a>
-        <a v-else-if="!isLoggedIn" href="/login" @click.prevent="goToLogin">Ienākt</a>
+        <a v-if="!isLoggedIn" href="/login" @click.prevent="goToLogin">Ienākt</a>
+        <a v-else href="/" @click.prevent="handleLogout">Iziet</a>
         <a href="/orders" @click.prevent="goToOrderPage" style="background: rgba(255,255,255,.08);">Noformēt pieteikumu</a>
       </div>
     </div>
@@ -43,8 +47,12 @@
 
         <div class="cta">
           <button class="btn burger" id="burger" aria-label="Atvērt izvēlni">☰</button>
+          <span v-if="isLoggedIn" class="btn" style="cursor:default;">
+            Profils: {{ authUser?.name }} ({{ authUser?.role }})
+          </span>
           <a v-if="canAccessStaffPanel" class="btn" href="/staff/orders" @click.prevent="goToStaffOrders">Staff panelis</a>
-          <a v-else-if="!isLoggedIn" class="btn" href="/login" @click.prevent="goToLogin">Ienākt</a>
+          <a v-if="!isLoggedIn" class="btn" href="/login" @click.prevent="goToLogin">Ienākt</a>
+          <button v-else class="btn" type="button" @click="handleLogout">Iziet</button>
           <a class="btn primary" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
         </div>
       </div>
@@ -613,13 +621,13 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { clearAuthSession, getAuthToken, getAuthUser, hasAnyRole, syncAuthUser } from '../lib/auth'
+import { currentUser, defaultRouteForUser, hasAnyRole, initAuth, isLoggedIn, logout } from '../auth'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 
 const root = ref(null)
 const router = useRouter()
-const authUser = ref(getAuthUser())
+const authUser = currentUser
 
 const draft = ref({
   name: 'Aleksejs Ivanovs',
@@ -630,7 +638,6 @@ const draft = ref({
 })
 
 const cleanups = []
-const isLoggedIn = computed(() => Boolean(authUser.value))
 const canAccessStaffPanel = computed(() => hasAnyRole(authUser.value, ['staff', 'admin']))
 
 function saveDraft() {
@@ -643,7 +650,7 @@ function goToLogin() {
 
 function goToOrderPage() {
   if (isLoggedIn.value) {
-    router.push('/orders')
+    router.push(defaultRouteForUser(authUser.value))
     return
   }
 
@@ -659,26 +666,13 @@ function goToStaffOrders() {
   router.push('/staff/orders')
 }
 
+async function handleLogout() {
+  await logout()
+  router.push('/')
+}
+
 onMounted(() => {
-  const syncSessionState = async () => {
-    const token = getAuthToken()
-
-    if (!token) {
-      authUser.value = null
-      return
-    }
-
-    authUser.value = getAuthUser()
-
-    try {
-      authUser.value = await syncAuthUser()
-    } catch {
-      clearAuthSession()
-      authUser.value = null
-    }
-  }
-
-  void syncSessionState()
+  void initAuth().catch(() => null)
 
   const el = root.value
   if (!el) return
