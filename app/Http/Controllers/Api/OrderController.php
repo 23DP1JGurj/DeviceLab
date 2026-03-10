@@ -164,7 +164,7 @@ class OrderController extends Controller
 
         if (! $belongsToUser) {
             throw ValidationException::withMessages([
-                'device_id' => ['Selected device does not belong to the current client.'],
+                'device_id' => ['Selected device does not belong to the current user.'],
             ]);
         }
     }

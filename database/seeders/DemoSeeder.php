@@ -8,6 +8,14 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
+        $adminId = DB::table('users')
+            ->where('email', 'admin@devicelab.local')
+            ->value('id');
+
+        $staffId = DB::table('users')
+            ->where('email', 'staff@devicelab.local')
+            ->value('id');
+
         $clientId = DB::table('users')
             ->where('email', 'client@devicelab.local')
             ->value('id');
@@ -75,29 +83,56 @@ class DemoSeeder extends Seeder
             ],
         ]);
 
-        DB::table('devices')->insertOrIgnore([
+        DB::table('devices')->updateOrInsert(
+            ['serial_number' => 'SN-ADMIN-001'],
             [
-                'id' => 1,
+                'user_id' => $adminId,
+                'type' => 'laptop',
+                'brand' => 'Lenovo',
+                'model' => 'ThinkPad X1',
+                'warranty_until' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        DB::table('devices')->updateOrInsert(
+            ['serial_number' => 'SN-STAFF-001'],
+            [
+                'user_id' => $staffId,
+                'type' => 'tablet',
+                'brand' => 'Apple',
+                'model' => 'iPad Air',
+                'warranty_until' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        DB::table('devices')->updateOrInsert(
+            ['serial_number' => 'SN-CLIENT-001'],
+            [
                 'user_id' => $clientId,
                 'type' => 'phone',
                 'brand' => 'Apple',
                 'model' => 'iPhone 12',
-                'serial_number' => 'SN-DEMO-001',
                 'warranty_until' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
+            ]
+        );
+
+        DB::table('devices')->updateOrInsert(
+            ['serial_number' => 'SN-CLIENT-002'],
             [
-                'id' => 2,
                 'user_id' => $clientId,
                 'type' => 'phone',
                 'brand' => 'Samsung',
                 'model' => 'Galaxy S21',
-                'serial_number' => 'SN-DEMO-002',
                 'warranty_until' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-        ]);
+            ]
+        );
     }
 }

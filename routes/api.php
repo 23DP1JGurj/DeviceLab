@@ -28,7 +28,7 @@ Route::prefix('auth')
     });
 
 Route::get('/branches', fn () => Branch::query()
-    ->select('id', 'name')
+    ->select('id', 'name', 'address')
     ->where('is_active', 1)
     ->orderBy('name')
     ->get());
@@ -46,6 +46,14 @@ Route::get('/parts', fn () => Part::query()
     ->get());
 
 Route::middleware(array_merge($sessionMiddleware, ['auth']))->group(function () {
+    Route::get('/my/devices', function (Request $request) {
+        return Device::query()
+            ->select('id', 'user_id', 'brand', 'model', 'type')
+            ->where('user_id', $request->user()->id)
+            ->orderByDesc('id')
+            ->get();
+    });
+
     Route::get('/devices', function (Request $request) {
         $query = Device::query()
             ->select('id', 'user_id', 'brand', 'model', 'type')

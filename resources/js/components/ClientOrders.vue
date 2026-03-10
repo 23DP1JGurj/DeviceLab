@@ -26,15 +26,28 @@
 
       <div class="grid2">
         <label class="field">
-          <div class="label">Branch ID</div>
-          <input class="control" v-model.number="form.branch_id" type="number" min="1" />
+          <div class="label">Branch</div>
+          <select class="control" v-model.number="form.branch_id" :disabled="metaLoading || branches.length === 0">
+            <option v-if="branches.length === 0" :value="null">No branches available</option>
+            <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+              {{ branch.name }}{{ branch.address ? ` — ${branch.address}` : '' }}
+            </option>
+          </select>
         </label>
 
         <label class="field">
-          <div class="label">Device ID</div>
-          <input class="control" v-model.number="form.device_id" type="number" min="1" />
+          <div class="label">Device</div>
+          <select class="control" v-model.number="form.device_id" :disabled="metaLoading || devices.length === 0">
+            <option v-if="devices.length === 0" :value="null">Add a device first</option>
+            <option v-for="device in devices" :key="device.id" :value="device.id">
+              {{ formatDeviceLabel(device) }}
+            </option>
+          </select>
         </label>
       </div>
+
+      <div v-if="metaError" class="msg mt12">{{ metaError }}</div>
+      <div v-else-if="noDevicesMessage" class="msg mt12">{{ noDevicesMessage }}</div>
 
       <label class="field mt12">
         <div class="label">Problem description</div>
@@ -77,7 +90,7 @@
         </div>
 
         <div class="mt14 row">
-          <button class="btn btnPrimary" type="button" @click="createOrder" :disabled="creating">
+          <button class="btn btnPrimary" type="button" @click="createOrder" :disabled="creating || metaLoading || devices.length === 0 || !form.device_id || !form.branch_id">
             {{ creating ? 'Creating...' : 'Create order' }}
           </button>
 
@@ -153,27 +166,32 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 
 const router = useRouter()
-const canAccessStaffPanel = hasAnyRole(currentUser.value, ['staff', 'admin'])
+const canAccessStaffPanel = computed(() => hasAnyRole(currentUser.value, ['staff', 'admin']))
 
 const orders = ref([])
 const total = ref(0)
 const listLoading = ref(false)
 const listError = ref('')
+const metaLoading = ref(false)
+const metaError = ref('')
+const branches = ref([])
+const devices = ref([])
+const noDevicesMessage = computed(() => !metaLoading.value && devices.value.length === 0 ? 'Add a device first.' : '')
 
 const creating = ref(false)
 const createError = ref('')
 const createSuccess = ref('')
 
 const form = reactive({
-  branch_id: 1,
-  device_id: 1,
+  branch_id: null,
+  device_id: null,
   problem_description: 'Neieslēdzas',
   items: [
     { item_type: 'service', service_id: 1, part_id: null, quantity: 1 },
@@ -192,10 +210,6 @@ const OFFICE_TO_BRANCH_ID = {
   imanta: 2,
 }
 
-const DEVICE_TYPE_TO_ID = {
-  phone: 1,
-}
-
 function goToStaffPanel() {
   router.push('/staff/orders')
 }
@@ -211,12 +225,42 @@ function resolveBranchIdFromOffice(office) {
 
 function resolveDeviceIdFromDraft(deviceType) {
   const normalized = normalizeDraftValue(deviceType)
-  return DEVICE_TYPE_TO_ID[normalized] ?? null
+
+  if (!normalized) return null
+
+  const matchedDevice = devices.value.find(device => normalizeDraftValue(device.type) === normalized)
+  return matchedDevice?.id ?? null
+}
+
+function syncSelectedBranch(preferredId = null) {
+  if (branches.value.length === 0) {
+    form.branch_id = null
+    return
+  }
+
+  const selectedId = preferredId ?? form.branch_id
+  const exists = branches.value.some(branch => branch.id === Number(selectedId))
+  form.branch_id = exists ? Number(selectedId) : branches.value[0].id
+}
+
+function syncSelectedDevice(preferredId = null) {
+  if (devices.value.length === 0) {
+    form.device_id = null
+    return
+  }
+
+  const selectedId = preferredId ?? form.device_id
+  const exists = devices.value.some(device => device.id === Number(selectedId))
+  form.device_id = exists ? Number(selectedId) : devices.value[0].id
 }
 
 function applyDraft() {
   const raw = localStorage.getItem(ORDER_DRAFT_STORAGE_KEY)
-  if (!raw) return
+  if (!raw) {
+    syncSelectedBranch()
+    syncSelectedDevice()
+    return
+  }
 
   try {
     const draft = JSON.parse(raw)
@@ -226,18 +270,17 @@ function applyDraft() {
     }
 
     const branchId = resolveBranchIdFromOffice(draft?.office)
-    if (branchId) {
-      form.branch_id = branchId
-    }
+    syncSelectedBranch(branchId)
 
     if (draft?.device_id) {
-      form.device_id = Number(draft.device_id)
+      syncSelectedDevice(Number(draft.device_id))
     } else {
-      const deviceId = resolveDeviceIdFromDraft(draft?.device_type)
-      if (deviceId) form.device_id = deviceId
+      syncSelectedDevice(resolveDeviceIdFromDraft(draft?.device_type))
     }
   } catch {
     localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
+    syncSelectedBranch()
+    syncSelectedDevice()
   }
 }
 
@@ -251,6 +294,54 @@ function removeItem(idx) {
 
 function formatDate(s) {
   try { return new Date(s).toLocaleString() } catch { return s }
+}
+
+function formatDeviceLabel(device) {
+  const parts = [device.brand, device.model].filter(Boolean)
+  const title = parts.join(' ')
+  return title ? `${title} (${device.type})` : `Device #${device.id}`
+}
+
+async function loadMeta() {
+  metaLoading.value = true
+  metaError.value = ''
+
+  try {
+    const [branchesRes, devicesRes] = await Promise.all([
+      authFetch('/api/branches'),
+      authFetch('/api/my/devices'),
+    ])
+
+    if (!branchesRes.ok) {
+      throw new Error(await extractErrorMessage(branchesRes, 'Unable to load branches.'))
+    }
+
+    if (!devicesRes.ok) {
+      if (devicesRes.status === 401) {
+        await router.push({ path: '/login', query: { redirect: '/orders' } })
+        return
+      }
+
+      throw new Error(await extractErrorMessage(devicesRes, 'Unable to load devices.'))
+    }
+
+    const branchesJson = await branchesRes.json()
+    const devicesJson = await devicesRes.json()
+
+    branches.value = branchesJson ?? []
+    devices.value = devicesJson ?? []
+
+    syncSelectedBranch()
+    syncSelectedDevice()
+  } catch (e) {
+    branches.value = []
+    devices.value = []
+    form.branch_id = null
+    form.device_id = null
+    metaError.value = (e?.message || 'Unable to load order form data.').slice(0, 260)
+  } finally {
+    metaLoading.value = false
+  }
 }
 
 async function loadOrders() {
@@ -286,6 +377,14 @@ async function createOrder() {
   createSuccess.value = ''
 
   try {
+    if (!form.branch_id) {
+      throw new Error('Please select a branch.')
+    }
+
+    if (!form.device_id) {
+      throw new Error('Add a device first.')
+    }
+
     const payload = {
       branch_id: form.branch_id,
       device_id: form.device_id,
@@ -325,6 +424,7 @@ async function createOrder() {
 
 onMounted(async () => {
   await initAuth().catch(() => null)
+  await loadMeta()
   applyDraft()
   await loadOrders()
 })
