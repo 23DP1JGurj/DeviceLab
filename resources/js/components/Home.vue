@@ -17,6 +17,7 @@
         <div v-if="isLoggedIn" style="padding:12px 12px; font-weight:700; color:rgba(255,255,255,.92);">
           Profils: {{ authUser?.name }} ({{ authUser?.role }})
         </div>
+        <a v-if="isClientUser" href="/devices" @click.prevent="goToMyDevices">Manas ierīces</a>
         <a v-if="canAccessStaffPanel" href="/staff/orders" @click.prevent="goToStaffOrders">Staff panelis</a>
         <a v-if="!isLoggedIn" href="/login" @click.prevent="goToLogin">Ienākt</a>
         <a v-else href="/" @click.prevent="handleLogout">Iziet</a>
@@ -50,6 +51,7 @@
           <span v-if="isLoggedIn" class="btn" style="cursor:default;">
             Profils: {{ authUser?.name }} ({{ authUser?.role }})
           </span>
+          <a v-if="isClientUser" class="btn" href="/devices" @click.prevent="goToMyDevices">Manas ierīces</a>
           <a v-if="canAccessStaffPanel" class="btn" href="/staff/orders" @click.prevent="goToStaffOrders">Staff panelis</a>
           <a v-if="!isLoggedIn" class="btn" href="/login" @click.prevent="goToLogin">Ienākt</a>
           <button v-else class="btn" type="button" @click="handleLogout">Iziet</button>
@@ -639,6 +641,7 @@ const draft = ref({
 
 const cleanups = []
 const canAccessStaffPanel = computed(() => hasAnyRole(authUser.value, ['staff', 'admin']))
+const isClientUser = computed(() => authUser.value?.role === 'client')
 
 function saveDraft() {
   localStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft.value))
@@ -664,6 +667,10 @@ function goToOrders() {
 
 function goToStaffOrders() {
   router.push('/staff/orders')
+}
+
+function goToMyDevices() {
+  router.push('/devices')
 }
 
 async function handleLogout() {

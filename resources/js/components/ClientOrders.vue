@@ -2,33 +2,30 @@
   <div class="page">
     <div class="topbar">
       <div class="titleBlock">
-        <h1 class="h1">My Orders</h1>
-        <div class="subtitle">DeviceLab client panel</div>
+        <h1 class="h1">Mani pasūtījumi</h1>
+        <div class="subtitle">DeviceLab klienta panelis</div>
       </div>
 
       <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Home</RouterLink>
-        <button v-if="canAccessStaffPanel" class="btn btnSoft" type="button" @click="goToStaffPanel">Staff panel</button>
+        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
+        <button v-if="canAccessStaffPanel" class="btn btnSoft" type="button" @click="goToStaffPanel">Darbinieku panelis</button>
         <button class="btn btnSoft" type="button" @click="loadOrders" :disabled="listLoading">
-          {{ listLoading ? 'Loading...' : 'Refresh' }}
+          {{ listLoading ? 'Ielādē...' : 'Atjaunot' }}
         </button>
       </div>
     </div>
 
     <div class="card">
       <div class="cardHead">
-        <div>
-          <div class="cardTitle">Create order</div>
-        </div>
-
-        <button class="btn btnSoft" type="button" @click="addItem">+ Add item</button>
+        <div class="cardTitle">Jauns pieteikums</div>
+        <button class="btn btnSoft" type="button" @click="addItem">+ Pievienot pozīciju</button>
       </div>
 
       <div class="grid2">
         <label class="field">
-          <div class="label">Branch</div>
+          <div class="label">Filiāle</div>
           <select class="control" v-model.number="form.branch_id" :disabled="metaLoading || branches.length === 0">
-            <option v-if="branches.length === 0" :value="null">No branches available</option>
+            <option v-if="branches.length === 0" :value="null">Filiāles nav pieejamas</option>
             <option v-for="branch in branches" :key="branch.id" :value="branch.id">
               {{ branch.name }}{{ branch.address ? ` — ${branch.address}` : '' }}
             </option>
@@ -36,9 +33,9 @@
         </label>
 
         <label class="field">
-          <div class="label">Device</div>
+          <div class="label">Ierīce</div>
           <select class="control" v-model.number="form.device_id" :disabled="metaLoading || devices.length === 0">
-            <option v-if="devices.length === 0" :value="null">Add a device first</option>
+            <option v-if="devices.length === 0" :value="null">Vēl nav ierīču</option>
             <option v-for="device in devices" :key="device.id" :value="device.id">
               {{ formatDeviceLabel(device) }}
             </option>
@@ -49,19 +46,23 @@
       <div v-if="metaError" class="msg mt12">{{ metaError }}</div>
       <div v-else-if="noDevicesMessage" class="msg mt12">{{ noDevicesMessage }}</div>
 
+      <div class="mt12">
+        <button class="btn btnSoft" type="button" @click="openDeviceModal">+ Pievienot ierīci</button>
+      </div>
+
       <label class="field mt12">
-        <div class="label">Problem description</div>
+        <div class="label">Problēmas apraksts</div>
         <input class="control" v-model="form.problem_description" type="text" />
       </label>
 
       <div class="mt16">
-        <div class="sectionTitle">Items</div>
+        <div class="sectionTitle">Pozīcijas</div>
 
         <div class="items">
           <div class="itemRow" v-for="(it, idx) in form.items" :key="idx">
             <select class="control" v-model="it.item_type">
-              <option value="service">service</option>
-              <option value="part">part</option>
+              <option value="service">pakalpojums</option>
+              <option value="part">detaļa</option>
             </select>
 
             <input
@@ -70,7 +71,7 @@
               v-model.number="it.service_id"
               type="number"
               min="1"
-              placeholder="service_id"
+              placeholder="pakalpojuma ID"
             />
             <input
               v-else
@@ -78,20 +79,23 @@
               v-model.number="it.part_id"
               type="number"
               min="1"
-              placeholder="part_id"
+              placeholder="detaļas ID"
             />
 
-            <input class="control" v-model.number="it.quantity" type="number" min="1" placeholder="qty" />
+            <input class="control" v-model.number="it.quantity" type="number" min="1" placeholder="daudzums" />
 
-            <button class="btnIcon btnDangerSoft" type="button" @click="removeItem(idx)" title="Remove">
-              ✕
-            </button>
+            <button class="btnIcon btnDangerSoft" type="button" @click="removeItem(idx)" title="Dzēst">×</button>
           </div>
         </div>
 
         <div class="mt14 row">
-          <button class="btn btnPrimary" type="button" @click="createOrder" :disabled="creating || metaLoading || devices.length === 0 || !form.device_id || !form.branch_id">
-            {{ creating ? 'Creating...' : 'Create order' }}
+          <button
+            class="btn btnPrimary"
+            type="button"
+            @click="createOrder"
+            :disabled="creating || metaLoading || devices.length === 0 || !form.device_id || !form.branch_id"
+          >
+            {{ creating ? 'Veido...' : 'Izveidot pieteikumu' }}
           </button>
 
           <div class="msg" v-if="createError">{{ createError }}</div>
@@ -101,12 +105,12 @@
     </div>
 
     <div class="sectionHeader">
-      <div class="sectionTitle">My orders</div>
-      <div class="muted">Total: {{ total }}</div>
+      <div class="sectionTitle">Mani pasūtījumi</div>
+      <div class="muted">Kopā: {{ total }}</div>
     </div>
 
     <div v-if="listLoading" class="card">
-      <div class="muted">Loading...</div>
+      <div class="muted">Ielādē...</div>
     </div>
 
     <div v-else>
@@ -115,48 +119,92 @@
       </div>
 
       <div v-else-if="orders.length === 0" class="card">
-        <div class="muted">No orders yet.</div>
+        <div class="muted">Pasūtījumu vēl nav.</div>
       </div>
 
-      <div class="card orderCard" v-for="o in orders" :key="o.id">
+      <div class="card orderCard" v-for="order in orders" :key="order.id">
         <div class="orderTop">
           <div class="orderMain">
             <div class="orderLine">
-              <div class="orderNum">{{ o.order_number }}</div>
-              <span class="badge" :class="'st_' + o.status">{{ o.status }}</span>
+              <div class="orderNum">{{ order.order_number }}</div>
+              <span class="badge" :class="'st_' + order.status">{{ order.status }}</span>
             </div>
 
-            <div class="muted">{{ o.problem_description || '—' }}</div>
+            <div class="muted">{{ order.problem_description || '—' }}</div>
 
             <div class="chips">
-              <span class="chip">ID: {{ o.id }}</span>
-              <span class="chip">Branch: {{ o.branch_id }}</span>
-              <span class="chip">Device: {{ o.device_id }}</span>
-              <span class="chip">Created: {{ formatDate(o.created_at) }}</span>
+              <span class="chip">ID: {{ order.id }}</span>
+              <span class="chip">Filiāle: {{ order.branch_id }}</span>
+              <span class="chip">Ierīce: {{ order.device_id }}</span>
+              <span class="chip">Izveidots: {{ formatDate(order.created_at) }}</span>
             </div>
           </div>
 
           <div class="cost">
-            <div class="muted small">Final cost</div>
-            <div class="costValue">{{ o.final_cost ?? '—' }}</div>
+            <div class="muted small">Galīgā summa</div>
+            <div class="costValue">{{ order.final_cost ?? '—' }}</div>
           </div>
         </div>
 
         <div class="divider"></div>
 
         <div class="itemsBlock">
-          <div class="subTitle">Items</div>
+          <div class="subTitle">Pozīcijas</div>
           <ul class="itemsList">
-            <li v-for="it in o.items" :key="it.id">
-              <template v-if="it.item_type === 'service'">
-                <b>service:</b> {{ it.service?.name || ('#' + it.service_id) }}
+            <li v-for="item in order.items" :key="item.id">
+              <template v-if="item.item_type === 'service'">
+                <b>pakalpojums:</b> {{ item.service?.name || ('#' + item.service_id) }}
               </template>
               <template v-else>
-                <b>part:</b> {{ it.part?.name || ('#' + it.part_id) }}
+                <b>detaļa:</b> {{ item.part?.name || ('#' + item.part_id) }}
               </template>
-              — {{ it.quantity }} × {{ it.unit_price }} = <b>{{ it.line_total }}</b>
+              — {{ item.quantity }} × {{ item.unit_price }} = <b>{{ item.line_total }}</b>
             </li>
           </ul>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="isDeviceModalOpen" class="modalOverlay" @click.self="closeDeviceModal">
+      <div class="modalCard">
+        <div class="cardHead">
+          <div class="cardTitle">Pievienot ierīci</div>
+        </div>
+
+        <label class="field">
+          <div class="label">Tips</div>
+          <select class="control" v-model="deviceForm.type">
+            <option value="phone">Telefons</option>
+            <option value="laptop">Portatīvais dators</option>
+            <option value="tablet">Planšete</option>
+            <option value="other">Cits</option>
+          </select>
+        </label>
+
+        <label class="field mt12">
+          <div class="label">Zīmols</div>
+          <input class="control" v-model.trim="deviceForm.brand" type="text" />
+        </label>
+
+        <label class="field mt12">
+          <div class="label">Modelis</div>
+          <input class="control" v-model.trim="deviceForm.model" type="text" />
+        </label>
+
+        <label class="field mt12">
+          <div class="label">Sērijas numurs</div>
+          <input class="control" v-model.trim="deviceForm.serial_number" type="text" />
+        </label>
+
+        <div v-if="deviceErrors.length > 0" class="msg mt12">
+          <div v-for="(error, index) in deviceErrors" :key="index">{{ error }}</div>
+        </div>
+
+        <div class="row mt16">
+          <button class="btn" type="button" @click="closeDeviceModal" :disabled="deviceSaving">Atcelt</button>
+          <button class="btn btnPrimary" type="button" @click="saveDevice" :disabled="deviceSaving">
+            {{ deviceSaving ? 'Saglabā...' : 'Saglabāt' }}
+          </button>
         </div>
       </div>
     </div>
@@ -183,11 +231,15 @@ const metaLoading = ref(false)
 const metaError = ref('')
 const branches = ref([])
 const devices = ref([])
-const noDevicesMessage = computed(() => !metaLoading.value && devices.value.length === 0 ? 'Add a device first.' : '')
+const noDevicesMessage = computed(() => !metaLoading.value && devices.value.length === 0 ? 'Vispirms pievieno ierīci.' : '')
 
 const creating = ref(false)
 const createError = ref('')
 const createSuccess = ref('')
+
+const isDeviceModalOpen = ref(false)
+const deviceSaving = ref(false)
+const deviceErrors = ref([])
 
 const form = reactive({
   branch_id: null,
@@ -197,6 +249,13 @@ const form = reactive({
     { item_type: 'service', service_id: 1, part_id: null, quantity: 1 },
     { item_type: 'part', service_id: null, part_id: 1, quantity: 1 },
   ],
+})
+
+const deviceForm = reactive({
+  type: 'phone',
+  brand: '',
+  model: '',
+  serial_number: '',
 })
 
 const OFFICE_TO_BRANCH_ID = {
@@ -212,6 +271,15 @@ const OFFICE_TO_BRANCH_ID = {
 
 function goToStaffPanel() {
   router.push('/staff/orders')
+}
+
+async function redirectByRole() {
+  if (hasAnyRole(currentUser.value, ['staff', 'admin'])) {
+    await router.replace('/staff/orders')
+    return
+  }
+
+  await router.replace({ path: '/login', query: { redirect: '/orders' } })
 }
 
 function normalizeDraftValue(value) {
@@ -288,18 +356,57 @@ function addItem() {
   form.items.push({ item_type: 'service', service_id: 1, part_id: null, quantity: 1 })
 }
 
-function removeItem(idx) {
-  form.items.splice(idx, 1)
+function removeItem(index) {
+  form.items.splice(index, 1)
 }
 
-function formatDate(s) {
-  try { return new Date(s).toLocaleString() } catch { return s }
+function formatDate(value) {
+  try {
+    return new Date(value).toLocaleString()
+  } catch {
+    return value
+  }
 }
 
 function formatDeviceLabel(device) {
   const parts = [device.brand, device.model].filter(Boolean)
   const title = parts.join(' ')
-  return title ? `${title} (${device.type})` : `Device #${device.id}`
+  return title ? `${title} (${device.type})` : `Ierīce #${device.id}`
+}
+
+function resetDeviceForm() {
+  deviceForm.type = 'phone'
+  deviceForm.brand = ''
+  deviceForm.model = ''
+  deviceForm.serial_number = ''
+  deviceErrors.value = []
+}
+
+function openDeviceModal() {
+  resetDeviceForm()
+  isDeviceModalOpen.value = true
+}
+
+function closeDeviceModal() {
+  if (deviceSaving.value) return
+  isDeviceModalOpen.value = false
+}
+
+async function loadDevices(selectedDeviceId = null) {
+  const response = await authFetch('/api/devices')
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      await redirectByRole()
+      return false
+    }
+
+    throw new Error(await extractErrorMessage(response, 'Neizdevās ielādēt ierīces.'))
+  }
+
+  devices.value = (await response.json()) ?? []
+  syncSelectedDevice(selectedDeviceId)
+  return true
 }
 
 async function loadMeta() {
@@ -307,38 +414,26 @@ async function loadMeta() {
   metaError.value = ''
 
   try {
-    const [branchesRes, devicesRes] = await Promise.all([
-      authFetch('/api/branches'),
-      authFetch('/api/my/devices'),
-    ])
+    const branchesResponse = await authFetch('/api/branches')
 
-    if (!branchesRes.ok) {
-      throw new Error(await extractErrorMessage(branchesRes, 'Unable to load branches.'))
-    }
-
-    if (!devicesRes.ok) {
-      if (devicesRes.status === 401) {
-        await router.push({ path: '/login', query: { redirect: '/orders' } })
+    if (!branchesResponse.ok) {
+      if (branchesResponse.status === 401 || branchesResponse.status === 403) {
+        await redirectByRole()
         return
       }
 
-      throw new Error(await extractErrorMessage(devicesRes, 'Unable to load devices.'))
+      throw new Error(await extractErrorMessage(branchesResponse, 'Neizdevās ielādēt filiāles.'))
     }
 
-    const branchesJson = await branchesRes.json()
-    const devicesJson = await devicesRes.json()
-
-    branches.value = branchesJson ?? []
-    devices.value = devicesJson ?? []
-
+    branches.value = (await branchesResponse.json()) ?? []
     syncSelectedBranch()
-    syncSelectedDevice()
-  } catch (e) {
+    await loadDevices()
+  } catch (error) {
     branches.value = []
     devices.value = []
     form.branch_id = null
     form.device_id = null
-    metaError.value = (e?.message || 'Unable to load order form data.').slice(0, 260)
+    metaError.value = (error?.message || 'Neizdevās ielādēt pieteikuma datus.').slice(0, 260)
   } finally {
     metaLoading.value = false
   }
@@ -347,25 +442,26 @@ async function loadMeta() {
 async function loadOrders() {
   listLoading.value = true
   listError.value = ''
-  try {
-    const res = await authFetch('/api/client/orders')
 
-    if (!res.ok) {
-      if (res.status === 401) {
-        await router.push({ path: '/login', query: { redirect: '/orders' } })
+  try {
+    const response = await authFetch('/api/client/orders')
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        await redirectByRole()
         return
       }
 
-      throw new Error(await extractErrorMessage(res, 'Unable to load orders.'))
+      throw new Error(await extractErrorMessage(response, 'Neizdevās ielādēt pasūtījumus.'))
     }
 
-    const json = await res.json()
+    const json = await response.json()
     orders.value = json.data ?? []
     total.value = json.total ?? orders.value.length
-  } catch (e) {
+  } catch (error) {
     orders.value = []
     total.value = 0
-    listError.value = (e?.message || 'Unable to load orders.').slice(0, 260)
+    listError.value = (error?.message || 'Neizdevās ielādēt pasūtījumus.').slice(0, 260)
   } finally {
     listLoading.value = false
   }
@@ -378,47 +474,95 @@ async function createOrder() {
 
   try {
     if (!form.branch_id) {
-      throw new Error('Please select a branch.')
+      throw new Error('Lūdzu, izvēlies filiāli.')
     }
 
     if (!form.device_id) {
-      throw new Error('Add a device first.')
+      throw new Error('Vispirms pievieno ierīci.')
     }
 
-    const payload = {
-      branch_id: form.branch_id,
-      device_id: form.device_id,
-      problem_description: form.problem_description,
-      items: form.items.map(item => ({
-        item_type: item.item_type,
-        service_id: item.item_type === 'service' ? item.service_id : null,
-        part_id: item.item_type === 'part' ? item.part_id : null,
-        quantity: item.quantity,
-      })),
-    }
-
-    const res = await authFetch('/api/orders', {
+    const response = await authFetch('/api/orders', {
       method: 'POST',
-      json: payload,
+      json: {
+        branch_id: form.branch_id,
+        device_id: form.device_id,
+        problem_description: form.problem_description,
+        items: form.items.map(item => ({
+          item_type: item.item_type,
+          service_id: item.item_type === 'service' ? item.service_id : null,
+          part_id: item.item_type === 'part' ? item.part_id : null,
+          quantity: item.quantity,
+        })),
+      },
     })
 
-    if (!res.ok) {
-      if (res.status === 401) {
-        await router.push({ path: '/login', query: { redirect: '/orders' } })
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        await redirectByRole()
         return
       }
 
-      throw new Error(await extractErrorMessage(res, 'Unable to create order.'))
+      throw new Error(await extractErrorMessage(response, 'Neizdevās izveidot pieteikumu.'))
     }
 
-    const created = await res.json()
+    const created = await response.json()
     localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
-    createSuccess.value = `Created: ${created.order_number}`
+    createSuccess.value = `Izveidots: ${created.order_number}`
     await loadOrders()
-  } catch (e) {
-    createError.value = (e?.message || 'Error').slice(0, 260)
+  } catch (error) {
+    createError.value = (error?.message || 'Kļūda').slice(0, 260)
   } finally {
     creating.value = false
+  }
+}
+
+async function saveDevice() {
+  deviceSaving.value = true
+  deviceErrors.value = []
+
+  try {
+    const response = await authFetch('/api/devices', {
+      method: 'POST',
+      json: {
+        type: deviceForm.type,
+        brand: deviceForm.brand,
+        model: deviceForm.model,
+        serial_number: deviceForm.serial_number || null,
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        await redirectByRole()
+        return
+      }
+
+      const text = await response.text()
+
+      try {
+        const payload = JSON.parse(text)
+        const validationErrors = Object.values(payload?.errors || {}).flat().map(String)
+        deviceErrors.value = validationErrors.length > 0
+          ? validationErrors
+          : [payload?.message || 'Neizdevās saglabāt ierīci.']
+      } catch {
+        deviceErrors.value = [text || 'Neizdevās saglabāt ierīci.']
+      }
+
+      return
+    }
+
+    const created = await response.json()
+    const loaded = await loadDevices(created?.id)
+
+    if (loaded) {
+      closeDeviceModal()
+      resetDeviceForm()
+    }
+  } catch (error) {
+    deviceErrors.value = [(error?.message || 'Neizdevās saglabāt ierīci.').slice(0, 260)]
+  } finally {
+    deviceSaving.value = false
   }
 }
 
@@ -488,7 +632,8 @@ onMounted(async () => {
   margin-bottom: 12px;
 }
 
-.cardTitle {
+.cardTitle,
+.sectionTitle {
   font-weight: 800;
   font-size: 16px;
 }
@@ -499,10 +644,6 @@ onMounted(async () => {
   align-items: baseline;
   margin-top: 18px;
   padding: 0 2px;
-}
-.sectionTitle {
-  font-size: 16px;
-  font-weight: 800;
 }
 
 .field { min-width: 0; }
@@ -657,6 +798,25 @@ onMounted(async () => {
 
 .muted { color: #64748b; }
 .small { font-size: 12px; }
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  z-index: 100;
+}
+
+.modalCard {
+  width: min(100%, 520px);
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  padding: 18px;
+}
 
 .mt12 { margin-top: 12px; }
 .mt14 { margin-top: 14px; }

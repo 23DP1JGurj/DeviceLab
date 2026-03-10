@@ -1,15 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\MyDeviceController;
 use App\Http\Controllers\Api\OrderController;
 use App\Models\Branch;
-use App\Models\Device;
 use App\Models\Part;
 use App\Models\Service;
-use App\Models\User;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 
@@ -46,32 +45,22 @@ Route::get('/parts', fn () => Part::query()
     ->get());
 
 Route::middleware(array_merge($sessionMiddleware, ['auth']))->group(function () {
-    Route::get('/my/devices', function (Request $request) {
-        return Device::query()
-            ->select('id', 'user_id', 'brand', 'model', 'type')
-            ->where('user_id', $request->user()->id)
-            ->orderByDesc('id')
-            ->get();
-    });
-
-    Route::get('/devices', function (Request $request) {
-        $query = Device::query()
-            ->select('id', 'user_id', 'brand', 'model', 'type')
-            ->orderByDesc('id');
-
-        if ($request->user()->hasRole(User::ROLE_CLIENT)) {
-            $query->where('user_id', $request->user()->id);
-        }
-
-        return $query->get();
-    });
-
+    Route::get('/devices', [DeviceController::class, 'index']);
+    Route::post('/devices', [DeviceController::class, 'store']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
 });
 
+Route::prefix('my')
+    ->middleware(array_merge($sessionMiddleware, ['auth', 'role:client']))
+    ->group(function () {
+        Route::get('/devices', [MyDeviceController::class, 'index']);
+        Route::post('/devices', [MyDeviceController::class, 'store']);
+        Route::delete('/devices/{device}', [MyDeviceController::class, 'destroy']);
+    });
+
 Route::prefix('client')
-    ->middleware(array_merge($sessionMiddleware, ['auth', 'role:client,admin']))
+    ->middleware(array_merge($sessionMiddleware, ['auth', 'role:client']))
     ->group(function () {
         Route::get('/orders', [OrderController::class, 'clientIndex']);
     });

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../components/Home.vue'
 import ClientOrders from '../components/ClientOrders.vue'
 import Login from '../components/Login.vue'
+import MyDevices from '../components/MyDevices.vue'
 import StaffOrders from '../components/StaffOrders.vue'
 import {
   CLIENT_ROLES,
@@ -14,6 +15,7 @@ import {
 const routes = [
   { path: '/', component: Home },
   { path: '/login', component: Login, meta: { guestOnly: true } },
+  { path: '/devices', component: MyDevices, meta: { requiresAuth: true, roles: ['client'] } },
   { path: '/orders', component: ClientOrders, meta: { requiresAuth: true, roles: CLIENT_ROLES } },
   { path: '/staff/orders', component: StaffOrders, meta: { requiresAuth: true, roles: STAFF_ROLES } },
 ]

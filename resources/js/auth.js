@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 
 const AUTH_USER_KEY = 'devicelab:authUser'
 
-export const CLIENT_ROLES = ['client', 'admin']
+export const CLIENT_ROLES = ['client']
 export const STAFF_ROLES = ['staff', 'admin']
 
 function readStoredUser() {
@@ -52,6 +52,10 @@ export function defaultRouteForUser(user) {
 }
 
 export function resolveRedirectPath(user, redirect) {
+  if (!user?.role) {
+    return '/login'
+  }
+
   const safeRedirect = sanitizeRedirectPath(redirect)
 
   if (!safeRedirect) {
