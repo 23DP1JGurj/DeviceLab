@@ -184,3 +184,20 @@ export async function logout() {
   authInitialized = true
   clearAuth()
 }
+
+export async function updateProfile(payload) {
+  const response = await authFetch('/api/auth/profile', {
+    method: 'PATCH',
+    json: payload,
+  })
+
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response, 'Unable to update profile.'))
+  }
+
+  const json = await response.json()
+  setCurrentUser(json?.user ?? null)
+  authInitialized = true
+
+  return currentUser.value
+}

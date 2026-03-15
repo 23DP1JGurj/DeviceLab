@@ -17,6 +17,7 @@ class AuthDemoSeeder extends Seeder
             ['email' => 'admin@devicelab.local'],
             [
                 'name' => 'Admin User',
+                'phone' => '+37120000001',
                 'password' => Hash::make('Admin123!'),
                 'role' => User::ROLE_ADMIN,
                 'created_at' => $now,
@@ -28,6 +29,7 @@ class AuthDemoSeeder extends Seeder
             ['email' => 'staff@devicelab.local'],
             [
                 'name' => 'Staff User',
+                'phone' => '+37120000002',
                 'password' => Hash::make('Staff123!'),
                 'role' => User::ROLE_STAFF,
                 'created_at' => $now,
@@ -39,6 +41,7 @@ class AuthDemoSeeder extends Seeder
             ['email' => 'client@devicelab.local'],
             [
                 'name' => 'Client User',
+                'phone' => '+37120000003',
                 'password' => Hash::make('Client123!'),
                 'role' => User::ROLE_CLIENT,
                 'created_at' => $now,

@@ -8,10 +8,10 @@
 
       <div class="topActions">
         <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <button v-if="canAccessStaffPanel" class="btn btnSoft" type="button" @click="goToStaffPanel">Darbinieku panelis</button>
         <button class="btn btnSoft" type="button" @click="loadOrders" :disabled="listLoading">
           {{ listLoading ? 'Ielādē...' : 'Atjaunot' }}
         </button>
+        <AccountMenu />
       </div>
     </div>
 
@@ -216,12 +216,12 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import AccountMenu from './AccountMenu.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 
 const router = useRouter()
-const canAccessStaffPanel = computed(() => hasAnyRole(currentUser.value, ['staff', 'admin']))
 
 const orders = ref([])
 const total = ref(0)
@@ -267,10 +267,6 @@ const OFFICE_TO_BRANCH_ID = {
   purvciems: 2,
   'riga-imanta': 2,
   imanta: 2,
-}
-
-function goToStaffPanel() {
-  router.push('/staff/orders')
 }
 
 async function redirectByRole() {
@@ -613,6 +609,7 @@ onMounted(async () => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .card {

@@ -14,14 +14,6 @@
         <a href="#reviews">Atsauksmes</a>
         <a href="#faq">FAQ</a>
         <a href="#contacts">Kontakti</a>
-        <div v-if="isLoggedIn" style="padding:12px 12px; font-weight:700; color:rgba(255,255,255,.92);">
-          Profils: {{ authUser?.name }} ({{ authUser?.role }})
-        </div>
-        <a v-if="isClientUser" href="/devices" @click.prevent="goToMyDevices">Manas ierīces</a>
-        <a v-if="canAccessStaffPanel" href="/staff/orders" @click.prevent="goToStaffOrders">Staff panelis</a>
-        <a v-if="!isLoggedIn" href="/login" @click.prevent="goToLogin">Ienākt</a>
-        <a v-else href="/" @click.prevent="handleLogout">Iziet</a>
-        <a href="/orders" @click.prevent="goToOrderPage" style="background: rgba(255,255,255,.08);">Noformēt pieteikumu</a>
       </div>
     </div>
   </div>
@@ -48,14 +40,7 @@
 
         <div class="cta">
           <button class="btn burger" id="burger" aria-label="Atvērt izvēlni">☰</button>
-          <span v-if="isLoggedIn" class="btn" style="cursor:default;">
-            Profils: {{ authUser?.name }} ({{ authUser?.role }})
-          </span>
-          <a v-if="isClientUser" class="btn" href="/devices" @click.prevent="goToMyDevices">Manas ierīces</a>
-          <a v-if="canAccessStaffPanel" class="btn" href="/staff/orders" @click.prevent="goToStaffOrders">Staff panelis</a>
-          <a v-if="!isLoggedIn" class="btn" href="/login" @click.prevent="goToLogin">Ienākt</a>
-          <button v-else class="btn" type="button" @click="handleLogout">Iziet</button>
-          <a class="btn primary" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
+          <AccountMenu variant="dark" />
         </div>
       </div>
     </div>
@@ -621,15 +606,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { currentUser, defaultRouteForUser, hasAnyRole, initAuth, isLoggedIn, logout } from '../auth'
+import AccountMenu from './AccountMenu.vue'
+import { currentUser, defaultRouteForUser, initAuth, isLoggedIn } from '../auth'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 
 const root = ref(null)
 const router = useRouter()
-const authUser = currentUser
 
 const draft = ref({
   name: 'Aleksejs Ivanovs',
@@ -640,42 +625,23 @@ const draft = ref({
 })
 
 const cleanups = []
-const canAccessStaffPanel = computed(() => hasAnyRole(authUser.value, ['staff', 'admin']))
-const isClientUser = computed(() => authUser.value?.role === 'client')
 
 function saveDraft() {
   localStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft.value))
 }
 
-function goToLogin() {
-  router.push({ path: '/login', query: { redirect: '/orders' } })
-}
-
 function goToOrderPage() {
   if (isLoggedIn.value) {
-    router.push(defaultRouteForUser(authUser.value))
+    router.push(defaultRouteForUser(currentUser.value))
     return
   }
 
-  goToLogin()
+  router.push({ path: '/login', query: { redirect: '/orders' } })
 }
 
 function goToOrders() {
   saveDraft()
   router.push('/orders')
-}
-
-function goToStaffOrders() {
-  router.push('/staff/orders')
-}
-
-function goToMyDevices() {
-  router.push('/devices')
-}
-
-async function handleLogout() {
-  await logout()
-  router.push('/')
 }
 
 onMounted(() => {

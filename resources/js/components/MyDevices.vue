@@ -8,10 +8,10 @@
 
       <div class="topActions">
         <RouterLink class="btn btnGhost" to="/">← Home</RouterLink>
-        <RouterLink class="btn btnSoft" to="/orders">My orders</RouterLink>
         <button class="btn btnSoft" type="button" @click="loadDevices" :disabled="listLoading">
           {{ listLoading ? 'Loading...' : 'Refresh' }}
         </button>
+        <AccountMenu />
       </div>
     </div>
 
@@ -98,6 +98,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import AccountMenu from './AccountMenu.vue'
 import { authFetch, extractErrorMessage, initAuth } from '../auth'
 
 const router = useRouter()
@@ -264,6 +265,7 @@ onMounted(async () => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .card {
