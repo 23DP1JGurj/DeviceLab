@@ -129,6 +129,47 @@ export async function extractErrorMessage(response, fallback = 'Request failed.'
   return text.slice(0, 260) || fallback
 }
 
+export async function extractErrorData(response, fallback = 'Request failed.') {
+  const text = await response.text()
+
+  if (!text) {
+    return {
+      message: fallback,
+      fieldErrors: {},
+      status: response.status,
+    }
+  }
+
+  try {
+    const payload = JSON.parse(text)
+    const fieldErrors = Object.fromEntries(
+      Object.entries(payload?.errors || {}).map(([key, value]) => [key, Array.isArray(value) ? value.map(String) : [String(value)]])
+    )
+    const firstFieldError = Object.values(fieldErrors).flat()[0]
+
+    return {
+      message: typeof payload?.message === 'string' && payload.message.trim()
+        ? payload.message
+        : String(firstFieldError || fallback),
+      fieldErrors,
+      status: response.status,
+    }
+  } catch {
+    return {
+      message: text.slice(0, 260) || fallback,
+      fieldErrors: {},
+      status: response.status,
+    }
+  }
+}
+
+function createApiError(data) {
+  const error = new Error(data.message)
+  error.fieldErrors = data.fieldErrors || {}
+  error.status = data.status
+  return error
+}
+
 export async function initAuth(force = false) {
   if (initRequest) return initRequest
   if (authInitialized && !force) return currentUser.value
@@ -166,7 +207,7 @@ export async function login(email, password) {
   })
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response, 'Unable to login.'))
+    throw createApiError(await extractErrorData(response, 'Unable to login.'))
   }
 
   const payload = await response.json()
@@ -183,7 +224,7 @@ export async function register(payload) {
   })
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response, 'Unable to register.'))
+    throw createApiError(await extractErrorData(response, 'Unable to register.'))
   }
 
   const payloadJson = await response.json()
@@ -209,7 +250,7 @@ export async function updateProfile(payload) {
   })
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response, 'Unable to update profile.'))
+    throw createApiError(await extractErrorData(response, 'Unable to update profile.'))
   }
 
   const json = await response.json()

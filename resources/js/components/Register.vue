@@ -1,48 +1,95 @@
 <template>
   <div class="authPage">
-    <div class="authCard">
+    <div class="authShell">
       <RouterLink class="backLink" to="/">← DeviceLab</RouterLink>
 
-      <div class="eyebrow">Reģistrācija</div>
-      <h1 class="title">Izveidot klienta kontu</h1>
-      <p class="subtitle">Pēc reģistrācijas uzreiz varēsi pievienot ierīces un noformēt pieteikumu.</p>
+      <div class="authCard">
+        <div class="eyebrow">Reģistrācija</div>
+        <h1 class="title">Izveidot klienta kontu</h1>
+        <p class="subtitle">Pēc reģistrācijas uzreiz varēsi pievienot ierīces un noformēt pieteikumu.</p>
 
-      <form class="form" @submit.prevent="submit">
-        <label class="field">
-          <span class="label">Vārds</span>
-          <input class="control" v-model.trim="form.name" type="text" autocomplete="name" required />
-        </label>
+        <form class="form" @submit.prevent="submit" novalidate>
+          <div v-if="serverError" class="alert alertError">{{ serverError }}</div>
 
-        <label class="field">
-          <span class="label">E-pasts</span>
-          <input class="control" v-model.trim="form.email" type="email" autocomplete="email" required />
-        </label>
+          <div class="formGrid">
+            <label class="field">
+              <span class="label">Vārds</span>
+              <input
+                class="control"
+                :class="{ hasError: fieldErrors.name?.length }"
+                v-model.trim="form.name"
+                type="text"
+                autocomplete="name"
+                required
+              />
+              <span v-if="fieldErrors.name?.[0]" class="fieldError">{{ fieldErrors.name[0] }}</span>
+            </label>
 
-        <label class="field">
-          <span class="label">Tālrunis</span>
-          <input class="control" v-model.trim="form.phone" type="text" autocomplete="tel" />
-        </label>
+            <label class="field">
+              <span class="label">E-pasts</span>
+              <input
+                class="control"
+                :class="{ hasError: fieldErrors.email?.length }"
+                v-model.trim="form.email"
+                type="email"
+                autocomplete="email"
+                required
+              />
+              <span v-if="fieldErrors.email?.[0]" class="fieldError">{{ fieldErrors.email[0] }}</span>
+            </label>
 
-        <label class="field">
-          <span class="label">Parole</span>
-          <input class="control" v-model="form.password" type="password" autocomplete="new-password" required />
-        </label>
+            <label class="field">
+              <span class="label">Tālrunis</span>
+              <input
+                class="control"
+                :class="{ hasError: fieldErrors.phone?.length }"
+                v-model.trim="form.phone"
+                type="text"
+                autocomplete="tel"
+                required
+              />
+              <span v-if="fieldErrors.phone?.[0]" class="fieldError">{{ fieldErrors.phone[0] }}</span>
+            </label>
 
-        <label class="field">
-          <span class="label">Atkārto paroli</span>
-          <input class="control" v-model="form.password_confirmation" type="password" autocomplete="new-password" required />
-        </label>
+            <label class="field">
+              <span class="label">Parole</span>
+              <input
+                class="control"
+                :class="{ hasError: fieldErrors.password?.length }"
+                v-model="form.password"
+                type="password"
+                autocomplete="new-password"
+                required
+              />
+              <span v-if="fieldErrors.password?.[0]" class="fieldError">{{ fieldErrors.password[0] }}</span>
+            </label>
 
-        <div v-if="error" class="message error">{{ error }}</div>
+            <label class="field fieldWide">
+              <span class="label">Atkārto paroli</span>
+              <input
+                class="control"
+                :class="{ hasError: fieldErrors.password_confirmation?.length }"
+                v-model="form.password_confirmation"
+                type="password"
+                autocomplete="new-password"
+                required
+              />
+              <span v-if="fieldErrors.password_confirmation?.[0]" class="fieldError">
+                {{ fieldErrors.password_confirmation[0] }}
+              </span>
+            </label>
+          </div>
 
-        <button class="submitBtn" type="submit" :disabled="loading">
-          {{ loading ? 'Reģistrē...' : 'Reģistrēties' }}
-        </button>
-      </form>
+          <button class="submitBtn" type="submit" :disabled="loading">
+            <span v-if="loading" class="loader" aria-hidden="true"></span>
+            <span>{{ loading ? 'Reģistrē...' : 'Reģistrēties' }}</span>
+          </button>
+        </form>
 
-      <div class="authSwitch">
-        Jau ir konts?
-        <RouterLink to="/login">Ielogoties</RouterLink>
+        <div class="authSwitch">
+          Jau ir konts?
+          <RouterLink to="/login">Ielogoties</RouterLink>
+        </div>
       </div>
     </div>
   </div>
@@ -65,24 +112,33 @@ const form = reactive({
 })
 
 const loading = ref(false)
-const error = ref('')
+const serverError = ref('')
+const fieldErrors = ref({})
+
+function resetErrors() {
+  serverError.value = ''
+  fieldErrors.value = {}
+}
 
 async function submit() {
   loading.value = true
-  error.value = ''
+  resetErrors()
 
   try {
     const user = await register({
       name: form.name,
       email: form.email,
-      phone: form.phone || null,
+      phone: form.phone,
       password: form.password,
       password_confirmation: form.password_confirmation,
     })
 
     await router.push(resolveRedirectPath(user, sanitizeRedirectPath(route.query.redirect)))
   } catch (err) {
-    error.value = err?.message || 'Neizdevās reģistrēties.'
+    fieldErrors.value = err?.fieldErrors || {}
+    serverError.value = err?.status && err.status !== 422
+      ? (err?.message || 'Neizdevās reģistrēties.')
+      : ''
   } finally {
     loading.value = false
   }
@@ -96,25 +152,19 @@ async function submit() {
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue";
   background:
     radial-gradient(900px 460px at 10% 0%, rgba(47, 124, 255, 0.14), transparent 60%),
-    radial-gradient(700px 420px at 100% 20%, rgba(10, 102, 255, 0.12), transparent 55%),
+    radial-gradient(700px 420px at 100% 20%, rgba(10, 102, 255, 0.10), transparent 55%),
     linear-gradient(180deg, #f4f8ff 0%, #eef4fb 48%, #f7f7f8 100%);
   color: #0f172a;
 }
 
 .authPage {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px 16px;
+  padding: 32px 16px;
 }
 
-.authCard {
-  width: min(100%, 480px);
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 24px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.10);
-  padding: 28px;
+.authShell {
+  width: min(100%, 880px);
+  margin: 0 auto;
 }
 
 .backLink {
@@ -122,101 +172,180 @@ async function submit() {
   align-items: center;
   margin-bottom: 18px;
   color: #1d4ed8;
-  font-weight: 700;
+  font-weight: 800;
   text-decoration: none;
+}
+
+.authCard {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 28px;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.10);
+  padding: 32px;
 }
 
 .eyebrow {
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  font-weight: 900;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #2563eb;
 }
 
 .title {
-  margin: 12px 0 10px;
-  font-size: 34px;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  margin: 14px 0 12px;
+  font-size: clamp(38px, 5vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
 }
 
 .subtitle {
-  margin: 0 0 20px;
+  margin: 0 0 24px;
+  max-width: 620px;
   color: #64748b;
-  line-height: 1.65;
+  line-height: 1.7;
+  font-size: 18px;
 }
 
 .form {
   display: grid;
-  gap: 14px;
+  gap: 18px;
 }
 
-.field {
-  display: grid;
-  gap: 6px;
-}
-
-.label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #475569;
-}
-
-.control {
-  width: 100%;
+.alert {
+  border-radius: 16px;
   padding: 12px 14px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
-  border-radius: 14px;
-  background: #fff;
-  outline: none;
-  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.control:focus {
-  border-color: rgba(37, 99, 235, 0.56);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
-}
-
-.submitBtn {
-  margin-top: 4px;
-  border: 0;
-  border-radius: 14px;
-  padding: 13px 18px;
-  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
-  color: #fff;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 18px 34px rgba(37, 99, 235, 0.22);
-}
-
-.submitBtn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.message {
-  border-radius: 14px;
-  padding: 10px 12px;
-  font-size: 13px;
-}
-
-.message.error {
+.alertError {
   color: #b91c1c;
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.18);
 }
 
+.formGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px 20px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.control {
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  outline: none;
+  font: inherit;
+  font-size: 16px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.control:focus {
+  border-color: rgba(37, 99, 235, 0.54);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.control.hasError {
+  border-color: rgba(239, 68, 68, 0.38);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
+}
+
+.fieldError {
+  font-size: 13px;
+  color: #b91c1c;
+  line-height: 1.45;
+}
+
+.submitBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 14px 22px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 18px 34px rgba(37, 99, 235, 0.22);
+}
+
+.submitBtn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.loader {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.34);
+  border-top-color: #fff;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
 .authSwitch {
-  margin-top: 18px;
+  margin-top: 22px;
   color: #64748b;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .authSwitch a {
-  color: #1d4ed8;
-  font-weight: 700;
-  text-decoration: none;
   margin-left: 6px;
+  color: #1d4ed8;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 720px) {
+  .authCard {
+    padding: 24px 18px;
+    border-radius: 24px;
+  }
+
+  .title {
+    font-size: 42px;
+  }
+
+  .subtitle {
+    font-size: 16px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .fieldWide {
+    grid-column: auto;
+  }
 }
 </style>
