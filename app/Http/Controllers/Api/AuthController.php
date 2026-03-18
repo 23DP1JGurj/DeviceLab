@@ -6,11 +6,37 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function register(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'min:2', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['nullable', 'string', 'min:6', 'max:30'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = User::create([
+            'name' => trim($data['name']),
+            'email' => trim($data['email']),
+            'phone' => filled($data['phone'] ?? null) ? trim($data['phone']) : null,
+            'password' => Hash::make($data['password']),
+            'role' => User::ROLE_CLIENT,
+        ]);
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return response()->json([
+            'user' => $this->serializeUser($user),
+        ], 201);
+    }
+
     public function login(Request $request)
     {
         $data = $request->validate([
@@ -20,7 +46,7 @@ class AuthController extends Controller
 
         if (! Auth::attempt($data)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => ['Nepareizs e-pasts vai parole.'],
             ]);
         }
 
@@ -44,12 +70,6 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        if (! $request->user()) {
-            return response()->json([
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
-
         return response()->json([
             'user' => $this->serializeUser($request->user()),
         ]);
@@ -58,12 +78,6 @@ class AuthController extends Controller
     public function updateProfile(Request $request)
     {
         $user = $request->user();
-
-        if (! $user) {
-            return response()->json([
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
 
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:255'],
@@ -85,7 +99,7 @@ class AuthController extends Controller
         $user->save();
 
         return response()->json([
-            'message' => 'Profile updated.',
+            'message' => 'Profils atjaunots.',
             'user' => $this->serializeUser($user->fresh()),
         ]);
     }

@@ -34,21 +34,18 @@
 
         <label class="field">
           <div class="label">Ierīce</div>
-          <select class="control" v-model.number="form.device_id" :disabled="metaLoading || devices.length === 0">
-            <option v-if="devices.length === 0" :value="null">Vēl nav ierīču</option>
+          <select class="control" v-model="deviceSelectValue" :disabled="metaLoading">
+            <option value="">Izvēlies ierīci</option>
             <option v-for="device in devices" :key="device.id" :value="device.id">
               {{ formatDeviceLabel(device) }}
             </option>
+            <option :value="ADD_DEVICE_OPTION">+ Pievienot ierīci</option>
           </select>
         </label>
       </div>
 
       <div v-if="metaError" class="msg mt12">{{ metaError }}</div>
       <div v-else-if="noDevicesMessage" class="msg mt12">{{ noDevicesMessage }}</div>
-
-      <div class="mt12">
-        <button class="btn btnSoft" type="button" @click="openDeviceModal">+ Pievienot ierīci</button>
-      </div>
 
       <label class="field mt12">
         <div class="label">Problēmas apraksts</div>
@@ -220,6 +217,7 @@ import AccountMenu from './AccountMenu.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
+const ADD_DEVICE_OPTION = '__add_device__'
 
 const router = useRouter()
 
@@ -231,7 +229,7 @@ const metaLoading = ref(false)
 const metaError = ref('')
 const branches = ref([])
 const devices = ref([])
-const noDevicesMessage = computed(() => !metaLoading.value && devices.value.length === 0 ? 'Vispirms pievieno ierīci.' : '')
+const noDevicesMessage = computed(() => '')
 
 const creating = ref(false)
 const createError = ref('')
@@ -240,6 +238,19 @@ const createSuccess = ref('')
 const isDeviceModalOpen = ref(false)
 const deviceSaving = ref(false)
 const deviceErrors = ref([])
+const deviceSelectValue = computed({
+  get() {
+    return form.device_id ? String(form.device_id) : ''
+  },
+  set(value) {
+    if (value === ADD_DEVICE_OPTION) {
+      openDeviceModal()
+      return
+    }
+
+    form.device_id = value ? Number(value) : null
+  },
+})
 
 const form = reactive({
   branch_id: null,
@@ -389,7 +400,7 @@ function closeDeviceModal() {
 }
 
 async function loadDevices(selectedDeviceId = null) {
-  const response = await authFetch('/api/devices')
+  const response = await authFetch('/api/my/devices')
 
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
@@ -477,7 +488,7 @@ async function createOrder() {
       throw new Error('Vispirms pievieno ierīci.')
     }
 
-    const response = await authFetch('/api/orders', {
+    const response = await authFetch('/api/client/orders', {
       method: 'POST',
       json: {
         branch_id: form.branch_id,
@@ -517,7 +528,7 @@ async function saveDevice() {
   deviceErrors.value = []
 
   try {
-    const response = await authFetch('/api/devices', {
+    const response = await authFetch('/api/my/devices', {
       method: 'POST',
       json: {
         type: deviceForm.type,

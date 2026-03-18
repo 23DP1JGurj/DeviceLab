@@ -1,112 +1,53 @@
 # DeviceLab
 
-DeviceLab ir mūsdienīga tīmekļa platforma servisa centram, kas specializējas tehnikas remontā.  
-Sistēma nodrošina ērtu pieteikumu noformēšanu, pasūtījumu pārvaldību un strukturētu darbu ar klientu pieprasījumiem.
+DeviceLab ir Laravel 12 + Vue 3 projekts servisa centra pieteikumu pārvaldībai. Klienti var reģistrēties, pievienot savas ierīces un izveidot remonta pieteikumus, bet darbinieki pārvalda visus pasūtījumus atsevišķā panelī.
 
----
+## Auth un lomas
 
-## 📋 Projekta apraksts
+Projektā tiek izmantota Laravel session autentifikācija SPA stilā:
+- `client` var redzēt tikai savus pasūtījumus un savas ierīces
+- `staff` var redzēt un apstrādāt visus pasūtījumus
+- `admin` var redzēt un apstrādāt visus pasūtījumus
 
-DeviceLab ir tīmekļa risinājums, kas paredzēts tehnikas remonta servisa darba organizēšanai.  
-Platforma ļauj klientiem ātri iesniegt pieteikumu remontam, bet servisa pusei — pārskatīt un apstrādāt pasūtījumus.
+Frontend pieprasījumi uz auth/API izmanto `credentials: 'same-origin'`.
 
-Sistēmas galvenais uzsvars ir uz:
-- vienkāršu pieteikuma izveidi;
-- saprotamu pasūtījumu struktūru;
-- skaidru saskarni gan klientam, gan servisam.
+## Testa konti
 
----
+- `admin@devicelab.local` / `password`
+- `staff@devicelab.local` / `password`
+- `client@devicelab.local` / `password`
 
-## 🔧 Galvenās iespējas
-
-### Klientam:
-- 📝 Pieteikuma noformēšana tehnikas remontam  
-- 📱 Ierīces tipa un filiāles izvēle  
-- 🗒️ Problēmas apraksta iesniegšana  
-- 🌐 Piekļuve sistēmai caur tīmekļa pārlūku  
-
-### Servisa pusei:
-- 📋 Pasūtījumu saraksta apskate  
-- 🔍 Meklēšana un filtrēšana pēc parametriem  
-- 🗄️ Pasūtījumu datu glabāšana datubāzē  
-- 🔄 Pamatstruktūra turpmākai funkcionalitātes paplašināšanai  
-
----
-
-## 🏗️ Projekta struktūra
-```
-DeviceLab/
-├── backend/   # Laravel REST API
-├── frontend/  # Vue lietotāja saskarne
-└── README.md  # Projekta apraksts
-```
----
-
-## ⚙️ Backend
-
-- **Framework:** Laravel  
-- **Valoda:** PHP 8.2+  
-- **Datubāze:** MySQL  
-- **API tips:** REST  
-
-### Galvenās mapes:
-- `app/Http/Controllers/` — API kontrolieri  
-- `app/Models/` — datu modeļi  
-- `database/migrations/` — datubāzes migrācijas  
-- `routes/api.php` — API maršrutēšana  
-
----
-
-## 🎨 Frontend
-
-- **Framework:** Vue 3  
-- **Build rīks:** Vite  
-- **Stili:** CSS  
-- **Valoda:** JavaScript  
-
-### Galvenās mapes:
-- `src/components/` — Vue komponentes  
-- `src/pages/` — lapas  
-- `src/router/` — maršrutēšana  
-- `src/assets/` — statiskie resursi  
-
----
-
-## 🚀 Palaišana
-
-### Priekšnoteikumi
-- PHP 8.2 vai jaunāks  
-- Node.js 18+  
-- Composer  
-- MySQL datubāze  
-
----
-
-### Backend palaišana
+## Palaišana
 
 ```bash
-cd backend
 composer install
+npm install
 cp .env.example .env
 php artisan key:generate
-php artisan migrate
-php artisan serve
-```
-
-## Auth demo
-
-Session auth is used for the frontend and API requests. Frontend fetch calls should use `credentials: 'same-origin'`.
-
-Test accounts:
-- `admin@devicelab.local` / `Admin123!`
-- `staff@devicelab.local` / `Staff123!`
-- `client@devicelab.local` / `Client123!`
-
-Quick start:
-
-```bash
 php artisan migrate
 php artisan db:seed
 php artisan serve
 npm run dev
 ```
+
+## Galvenie auth endpointi
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `PATCH /api/auth/profile`
+
+## Pasūtījumu endpointi
+
+- `GET /api/client/orders`
+- `POST /api/client/orders`
+- `GET /api/staff/orders`
+- `PATCH /api/staff/orders/{id}`
+- `DELETE /api/staff/orders/{id}`
+
+## Ierīču endpointi
+
+- `GET /api/my/devices`
+- `POST /api/my/devices`
+- `DELETE /api/my/devices/{id}`

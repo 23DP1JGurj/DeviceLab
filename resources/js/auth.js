@@ -176,6 +176,23 @@ export async function login(email, password) {
   return currentUser.value
 }
 
+export async function register(payload) {
+  const response = await authFetch('/api/auth/register', {
+    method: 'POST',
+    json: payload,
+  })
+
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response, 'Unable to register.'))
+  }
+
+  const payloadJson = await response.json()
+  setCurrentUser(payloadJson?.user ?? null)
+  authInitialized = true
+
+  return currentUser.value
+}
+
 export async function logout() {
   await authFetch('/api/auth/logout', {
     method: 'POST',

@@ -18,7 +18,7 @@ class AuthDemoSeeder extends Seeder
             [
                 'name' => 'Admin User',
                 'phone' => '+37120000001',
-                'password' => Hash::make('Admin123!'),
+                'password' => Hash::make('password'),
                 'role' => User::ROLE_ADMIN,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -30,7 +30,7 @@ class AuthDemoSeeder extends Seeder
             [
                 'name' => 'Staff User',
                 'phone' => '+37120000002',
-                'password' => Hash::make('Staff123!'),
+                'password' => Hash::make('password'),
                 'role' => User::ROLE_STAFF,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -42,7 +42,7 @@ class AuthDemoSeeder extends Seeder
             [
                 'name' => 'Client User',
                 'phone' => '+37120000003',
-                'password' => Hash::make('Client123!'),
+                'password' => Hash::make('password'),
                 'role' => User::ROLE_CLIENT,
                 'created_at' => $now,
                 'updated_at' => $now,

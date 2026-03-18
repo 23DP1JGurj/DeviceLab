@@ -4,8 +4,8 @@
       <RouterLink class="backLink" to="/">← DeviceLab</RouterLink>
 
       <div class="eyebrow">Autorizācija</div>
-      <h1 class="title">Ienākt profilā</h1>
-      <p class="subtitle">Pieslēdzies, lai noformētu pieteikumu vai atvērtu personīgo paneli.</p>
+      <h1 class="title">Ielogoties kontā</h1>
+      <p class="subtitle">Pieslēdzies, lai pārvaldītu savus pieteikumus vai atvērtu darbinieka paneli.</p>
 
       <form class="form" @submit.prevent="submit">
         <label class="field">
@@ -21,15 +21,20 @@
         <div v-if="error" class="message error">{{ error }}</div>
 
         <button class="submitBtn" type="submit" :disabled="loading">
-          {{ loading ? 'Ielogojas...' : 'Ienākt' }}
+          {{ loading ? 'Ielogojas...' : 'Ielogoties' }}
         </button>
       </form>
 
+      <div class="authSwitch">
+        Nav konta?
+        <RouterLink to="/register">Reģistrēties</RouterLink>
+      </div>
+
       <div class="accounts">
-        <div class="accountsTitle">Demo konti</div>
-        <div class="accountLine"><b>admin</b> admin@devicelab.local / Admin123!</div>
-        <div class="accountLine"><b>staff</b> staff@devicelab.local / Staff123!</div>
-        <div class="accountLine"><b>client</b> client@devicelab.local / Client123!</div>
+        <div class="accountsTitle">Testa konti</div>
+        <div class="accountLine"><b>admin</b> admin@devicelab.local / password</div>
+        <div class="accountLine"><b>staff</b> staff@devicelab.local / password</div>
+        <div class="accountLine"><b>client</b> client@devicelab.local / password</div>
       </div>
     </div>
   </div>
@@ -59,7 +64,7 @@ async function submit() {
     const user = await login(form.email, form.password)
     await router.push(resolveRedirectPath(user, sanitizeRedirectPath(route.query.redirect)))
   } catch (err) {
-    error.value = err?.message || 'Unable to login.'
+    error.value = err?.message || 'Neizdevās ielogoties.'
   } finally {
     loading.value = false
   }
@@ -182,6 +187,19 @@ async function submit() {
   color: #b91c1c;
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.authSwitch {
+  margin-top: 18px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.authSwitch a {
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 6px;
 }
 
 .accounts {

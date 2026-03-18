@@ -4,20 +4,89 @@
       <RouterLink class="backLink" to="/">← DeviceLab</RouterLink>
 
       <div class="eyebrow">Reģistrācija</div>
-      <h1 class="title">Konta izveide drīzumā</h1>
-      <p class="subtitle">
-        Demo projektā reģistrācija vēl nav ieslēgta. Pagaidām izmanto kādu no testa kontiem pieslēgšanās lapā.
-      </p>
+      <h1 class="title">Izveidot klienta kontu</h1>
+      <p class="subtitle">Pēc reģistrācijas uzreiz varēsi pievienot ierīces un noformēt pieteikumu.</p>
 
-      <div class="actions">
-        <RouterLink class="submitBtn" to="/login">Iet uz ielogošanos</RouterLink>
+      <form class="form" @submit.prevent="submit">
+        <label class="field">
+          <span class="label">Vārds</span>
+          <input class="control" v-model.trim="form.name" type="text" autocomplete="name" required />
+        </label>
+
+        <label class="field">
+          <span class="label">E-pasts</span>
+          <input class="control" v-model.trim="form.email" type="email" autocomplete="email" required />
+        </label>
+
+        <label class="field">
+          <span class="label">Tālrunis</span>
+          <input class="control" v-model.trim="form.phone" type="text" autocomplete="tel" />
+        </label>
+
+        <label class="field">
+          <span class="label">Parole</span>
+          <input class="control" v-model="form.password" type="password" autocomplete="new-password" required />
+        </label>
+
+        <label class="field">
+          <span class="label">Atkārto paroli</span>
+          <input class="control" v-model="form.password_confirmation" type="password" autocomplete="new-password" required />
+        </label>
+
+        <div v-if="error" class="message error">{{ error }}</div>
+
+        <button class="submitBtn" type="submit" :disabled="loading">
+          {{ loading ? 'Reģistrē...' : 'Reģistrēties' }}
+        </button>
+      </form>
+
+      <div class="authSwitch">
+        Jau ir konts?
+        <RouterLink to="/login">Ielogoties</RouterLink>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { RouterLink } from 'vue-router'
+import { reactive, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { register, resolveRedirectPath, sanitizeRedirectPath } from '../auth'
+
+const route = useRoute()
+const router = useRouter()
+
+const form = reactive({
+  name: '',
+  email: '',
+  phone: '',
+  password: '',
+  password_confirmation: '',
+})
+
+const loading = ref(false)
+const error = ref('')
+
+async function submit() {
+  loading.value = true
+  error.value = ''
+
+  try {
+    const user = await register({
+      name: form.name,
+      email: form.email,
+      phone: form.phone || null,
+      password: form.password,
+      password_confirmation: form.password_confirmation,
+    })
+
+    await router.push(resolveRedirectPath(user, sanitizeRedirectPath(route.query.redirect)))
+  } catch (err) {
+    error.value = err?.message || 'Neizdevās reģistrēties.'
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -40,7 +109,7 @@ import { RouterLink } from 'vue-router'
 }
 
 .authCard {
-  width: min(100%, 460px);
+  width: min(100%, 480px);
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 24px;
@@ -73,26 +142,81 @@ import { RouterLink } from 'vue-router'
 }
 
 .subtitle {
-  margin: 0;
+  margin: 0 0 20px;
   color: #64748b;
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
-.actions {
-  margin-top: 22px;
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.control {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 14px;
+  background: #fff;
+  outline: none;
+  font: inherit;
+}
+
+.control:focus {
+  border-color: rgba(37, 99, 235, 0.56);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
 .submitBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  margin-top: 4px;
   border: 0;
   border-radius: 14px;
   padding: 13px 18px;
   background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
   color: #fff;
   font-weight: 800;
-  text-decoration: none;
+  cursor: pointer;
   box-shadow: 0 18px 34px rgba(37, 99, 235, 0.22);
+}
+
+.submitBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.message {
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.message.error {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.authSwitch {
+  margin-top: 18px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.authSwitch a {
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 6px;
 }
 </style>

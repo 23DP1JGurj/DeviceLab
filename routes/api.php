@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\MyDeviceController;
 use App\Http\Controllers\Api\OrderController;
 use App\Models\Branch;
@@ -21,10 +20,13 @@ $sessionMiddleware = [
 Route::prefix('auth')
     ->middleware($sessionMiddleware)
     ->group(function () {
+        Route::post('/register', [AuthController::class, 'register']);
         Route::post('/login', [AuthController::class, 'login']);
-        Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/me', [AuthController::class, 'me']);
-        Route::middleware('auth')->patch('/profile', [AuthController::class, 'updateProfile']);
+        Route::middleware('auth')->group(function () {
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::get('/me', [AuthController::class, 'me']);
+            Route::patch('/profile', [AuthController::class, 'updateProfile']);
+        });
     });
 
 Route::get('/branches', fn () => Branch::query()
@@ -45,13 +47,6 @@ Route::get('/parts', fn () => Part::query()
     ->orderBy('name')
     ->get());
 
-Route::middleware(array_merge($sessionMiddleware, ['auth']))->group(function () {
-    Route::get('/devices', [DeviceController::class, 'index']);
-    Route::post('/devices', [DeviceController::class, 'store']);
-    Route::post('/orders', [OrderController::class, 'store']);
-    Route::get('/orders/{order}', [OrderController::class, 'show']);
-});
-
 Route::prefix('my')
     ->middleware(array_merge($sessionMiddleware, ['auth', 'role:client']))
     ->group(function () {
@@ -64,6 +59,8 @@ Route::prefix('client')
     ->middleware(array_merge($sessionMiddleware, ['auth', 'role:client']))
     ->group(function () {
         Route::get('/orders', [OrderController::class, 'clientIndex']);
+        Route::post('/orders', [OrderController::class, 'store']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
     });
 
 Route::prefix('staff')
