@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <div class="topbar">
       <div class="titleBlock">
@@ -8,24 +8,27 @@
 
       <div class="topActions">
         <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <button class="btn btnSoft" type="button" @click="loadOrders" :disabled="listLoading">
-          {{ listLoading ? 'Ielādē...' : 'Atjaunot' }}
-        </button>
         <AccountMenu />
       </div>
     </div>
 
     <div class="card">
       <div class="cardHead">
-        <div class="cardTitle">Jauns pieteikums</div>
+        <div>
+          <div class="cardTitle">Jauns pieteikums</div>
+          <div class="cardSubtitle">Izvēlies filiāli, ierīci un pievieno pozīcijas bez manuālas ID ievades.</div>
+        </div>
+
         <button class="btn btnSoft" type="button" @click="addItem">+ Pievienot pozīciju</button>
       </div>
+
+      <div v-if="metaLoading" class="loadingBox">Ielādējam filiāles, ierīces un cenu katalogu...</div>
 
       <div class="grid2">
         <label class="field">
           <div class="label">Filiāle</div>
           <select class="control" v-model.number="form.branch_id" :disabled="metaLoading || branches.length === 0">
-            <option v-if="branches.length === 0" :value="null">Filiāles nav pieejamas</option>
+            <option value="">Izvēlies filiāli</option>
             <option v-for="branch in branches" :key="branch.id" :value="branch.id">
               {{ branch.name }}{{ branch.address ? ` — ${branch.address}` : '' }}
             </option>
@@ -45,52 +48,66 @@
       </div>
 
       <div v-if="metaError" class="msg mt12">{{ metaError }}</div>
-      <div v-else-if="noDevicesMessage" class="msg mt12">{{ noDevicesMessage }}</div>
 
       <label class="field mt12">
         <div class="label">Problēmas apraksts</div>
-        <input class="control" v-model="form.problem_description" type="text" />
+        <textarea class="control textarea" v-model="form.problem_description" rows="3"></textarea>
       </label>
 
-      <div class="mt16">
+      <div class="mt18">
         <div class="sectionTitle">Pozīcijas</div>
 
+        <div v-if="form.items.length === 0" class="emptyHint mt12">
+          Pievieno vismaz vienu pakalpojumu vai detaļu.
+        </div>
+
         <div class="items">
-          <div class="itemRow" v-for="(it, idx) in form.items" :key="idx">
-            <select class="control" v-model="it.item_type">
-              <option value="service">pakalpojums</option>
-              <option value="part">detaļa</option>
+          <div class="itemRow" v-for="(item, index) in form.items" :key="index">
+            <select class="control" v-model="item.item_type" @change="syncItemSelection(item)">
+              <option value="service">Pakalpojums</option>
+              <option value="part">Detaļa</option>
             </select>
 
-            <input
-              v-if="it.item_type === 'service'"
+            <select
+              v-if="item.item_type === 'service'"
               class="control"
-              v-model.number="it.service_id"
-              type="number"
-              min="1"
-              placeholder="pakalpojuma ID"
-            />
-            <input
+              v-model.number="item.service_id"
+              :disabled="services.length === 0"
+            >
+              <option value="">Izvēlies pakalpojumu</option>
+              <option v-for="service in services" :key="service.id" :value="service.id">
+                {{ service.name }} — {{ formatMoney(service.base_price) }}
+              </option>
+            </select>
+
+            <select
               v-else
               class="control"
-              v-model.number="it.part_id"
-              type="number"
-              min="1"
-              placeholder="detaļas ID"
-            />
+              v-model.number="item.part_id"
+              :disabled="parts.length === 0"
+            >
+              <option value="">Izvēlies detaļu</option>
+              <option v-for="part in parts" :key="part.id" :value="part.id">
+                {{ part.name }} — {{ formatMoney(part.unit_price) }}
+              </option>
+            </select>
 
-            <input class="control" v-model.number="it.quantity" type="number" min="1" placeholder="daudzums" />
+            <input class="control qtyControl" v-model.number="item.quantity" type="number" min="1" placeholder="Daudzums" />
 
-            <button class="btnIcon btnDangerSoft" type="button" @click="removeItem(idx)" title="Dzēst">×</button>
+            <button class="btnIcon btnDangerSoft" type="button" @click="removeItem(index)" title="Dzēst">×</button>
           </div>
         </div>
 
-        <div class="mt14 row">
+        <div class="summaryRow mt14">
+          <div class="muted">Aptuvenā summa: <b>{{ formatMoney(draftTotal) }}</b></div>
+        </div>
+
+        <div class="row mt14">
           <button
             class="btn btnPrimary"
             type="button"
             @click="createOrder"
-            :disabled="creating || metaLoading || devices.length === 0 || !form.device_id || !form.branch_id"
+            :disabled="creating || metaLoading || !form.branch_id || !form.device_id || form.items.length === 0"
           >
             {{ creating ? 'Veido...' : 'Izveidot pieteikumu' }}
           </button>
@@ -102,12 +119,12 @@
     </div>
 
     <div class="sectionHeader">
-      <div class="sectionTitle">Mani pasūtījumi</div>
-      <div class="muted">Kopā: {{ total }}</div>
-    </div>
+        <div class="sectionTitle">Mani pasūtījumi</div>
+        <div class="muted">Kopā: {{ total }}</div>
+      </div>
 
     <div v-if="listLoading" class="card">
-      <div class="muted">Ielādē...</div>
+      <div class="loadingBox">Ielādējam pasūtījumus...</div>
     </div>
 
     <div v-else>
@@ -130,16 +147,15 @@
             <div class="muted">{{ order.problem_description || '—' }}</div>
 
             <div class="chips">
-              <span class="chip">ID: {{ order.id }}</span>
-              <span class="chip">Filiāle: {{ order.branch_id }}</span>
-              <span class="chip">Ierīce: {{ order.device_id }}</span>
+              <span class="chip">Filiāle: {{ order.branch?.name || order.branch_id }}</span>
+              <span class="chip">Ierīce: {{ orderDeviceLabel(order.device) }}</span>
               <span class="chip">Izveidots: {{ formatDate(order.created_at) }}</span>
             </div>
           </div>
 
           <div class="cost">
             <div class="muted small">Galīgā summa</div>
-            <div class="costValue">{{ order.final_cost ?? '—' }}</div>
+            <div class="costValue">{{ order.final_cost != null ? formatMoney(order.final_cost) : '—' }}</div>
           </div>
         </div>
 
@@ -155,7 +171,7 @@
               <template v-else>
                 <b>detaļa:</b> {{ item.part?.name || ('#' + item.part_id) }}
               </template>
-              — {{ item.quantity }} × {{ item.unit_price }} = <b>{{ item.line_total }}</b>
+              — {{ item.quantity }} × {{ formatMoney(item.unit_price) }} = <b>{{ formatMoney(item.line_total) }}</b>
             </li>
           </ul>
         </div>
@@ -165,7 +181,10 @@
     <div v-if="isDeviceModalOpen" class="modalOverlay" @click.self="closeDeviceModal">
       <div class="modalCard">
         <div class="cardHead">
-          <div class="cardTitle">Pievienot ierīci</div>
+          <div>
+            <div class="cardTitle">Pievienot ierīci</div>
+            <div class="cardSubtitle">Saglabā ierīci un uzreiz izvēlies to jaunajam pieteikumam.</div>
+          </div>
         </div>
 
         <label class="field">
@@ -178,15 +197,17 @@
           </select>
         </label>
 
-        <label class="field mt12">
-          <div class="label">Zīmols</div>
-          <input class="control" v-model.trim="deviceForm.brand" type="text" />
-        </label>
+        <div class="grid2 mt12">
+          <label class="field">
+            <div class="label">Zīmols</div>
+            <input class="control" v-model.trim="deviceForm.brand" type="text" />
+          </label>
 
-        <label class="field mt12">
-          <div class="label">Modelis</div>
-          <input class="control" v-model.trim="deviceForm.model" type="text" />
-        </label>
+          <label class="field">
+            <div class="label">Modelis</div>
+            <input class="control" v-model.trim="deviceForm.model" type="text" />
+          </label>
+        </div>
 
         <label class="field mt12">
           <div class="label">Sērijas numurs</div>
@@ -221,15 +242,17 @@ const ADD_DEVICE_OPTION = '__add_device__'
 
 const router = useRouter()
 
+const branches = ref([])
+const services = ref([])
+const parts = ref([])
+const devices = ref([])
 const orders = ref([])
+
 const total = ref(0)
 const listLoading = ref(false)
 const listError = ref('')
 const metaLoading = ref(false)
 const metaError = ref('')
-const branches = ref([])
-const devices = ref([])
-const noDevicesMessage = computed(() => '')
 
 const creating = ref(false)
 const createError = ref('')
@@ -255,11 +278,8 @@ const deviceSelectValue = computed({
 const form = reactive({
   branch_id: null,
   device_id: null,
-  problem_description: 'Neieslēdzas',
-  items: [
-    { item_type: 'service', service_id: 1, part_id: null, quantity: 1 },
-    { item_type: 'part', service_id: null, part_id: 1, quantity: 1 },
-  ],
+  problem_description: '',
+  items: [],
 })
 
 const deviceForm = reactive({
@@ -278,6 +298,85 @@ const OFFICE_TO_BRANCH_ID = {
   purvciems: 2,
   'riga-imanta': 2,
   imanta: 2,
+}
+
+const draftTotal = computed(() => form.items.reduce((sum, item) => {
+  const unitPrice = item.item_type === 'service'
+    ? Number(services.value.find(service => service.id === Number(item.service_id))?.base_price || 0)
+    : Number(parts.value.find(part => part.id === Number(item.part_id))?.unit_price || 0)
+
+  return sum + (unitPrice * Number(item.quantity || 0))
+}, 0))
+
+function formatMoney(value) {
+  const amount = Number(value || 0)
+  return `${amount.toFixed(2)} €`
+}
+
+function formatDate(value) {
+  try {
+    return new Date(value).toLocaleString()
+  } catch {
+    return value
+  }
+}
+
+function formatDeviceLabel(device) {
+  if (!device) return '—'
+
+  const parts = [device.brand, device.model].filter(Boolean)
+  const title = parts.join(' ')
+  return title ? `${title} (${device.type})` : `IerД«ce #${device.id}`
+}
+
+function orderDeviceLabel(device) {
+  return device ? formatDeviceLabel(device) : 'вЂ”'
+}
+
+function defaultItemType() {
+  if (services.value.length > 0) return 'service'
+  if (parts.value.length > 0) return 'part'
+  return 'service'
+}
+
+function syncItemSelection(item) {
+  if (item.item_type === 'service') {
+    item.part_id = null
+    item.service_id = services.value.some(service => service.id === Number(item.service_id))
+      ? Number(item.service_id)
+      : (services.value[0]?.id ?? null)
+    return
+  }
+
+  item.service_id = null
+  item.part_id = parts.value.some(part => part.id === Number(item.part_id))
+    ? Number(item.part_id)
+    : (parts.value[0]?.id ?? null)
+}
+
+function ensureItems() {
+  if (form.items.length === 0) {
+    addItem(defaultItemType())
+    return
+  }
+
+  form.items.forEach(syncItemSelection)
+}
+
+function addItem(itemType = defaultItemType()) {
+  const item = {
+    item_type: itemType,
+    service_id: null,
+    part_id: null,
+    quantity: 1,
+  }
+
+  syncItemSelection(item)
+  form.items.push(item)
+}
+
+function removeItem(index) {
+  form.items.splice(index, 1)
 }
 
 async function redirectByRole() {
@@ -344,8 +443,7 @@ function applyDraft() {
       form.problem_description = draft.problem_description.trim()
     }
 
-    const branchId = resolveBranchIdFromOffice(draft?.office)
-    syncSelectedBranch(branchId)
+    syncSelectedBranch(resolveBranchIdFromOffice(draft?.office))
 
     if (draft?.device_id) {
       syncSelectedDevice(Number(draft.device_id))
@@ -357,28 +455,6 @@ function applyDraft() {
     syncSelectedBranch()
     syncSelectedDevice()
   }
-}
-
-function addItem() {
-  form.items.push({ item_type: 'service', service_id: 1, part_id: null, quantity: 1 })
-}
-
-function removeItem(index) {
-  form.items.splice(index, 1)
-}
-
-function formatDate(value) {
-  try {
-    return new Date(value).toLocaleString()
-  } catch {
-    return value
-  }
-}
-
-function formatDeviceLabel(device) {
-  const parts = [device.brand, device.model].filter(Boolean)
-  const title = parts.join(' ')
-  return title ? `${title} (${device.type})` : `Ierīce #${device.id}`
 }
 
 function resetDeviceForm() {
@@ -408,7 +484,7 @@ async function loadDevices(selectedDeviceId = null) {
       return false
     }
 
-    throw new Error(await extractErrorMessage(response, 'Neizdevās ielādēt ierīces.'))
+      throw new Error(await extractErrorMessage(response, 'Neizdevās ielādēt ierīces.'))
   }
 
   devices.value = (await response.json()) ?? []
@@ -421,25 +497,39 @@ async function loadMeta() {
   metaError.value = ''
 
   try {
-    const branchesResponse = await authFetch('/api/branches')
+    const [branchesResponse, servicesResponse, partsResponse] = await Promise.all([
+      authFetch('/api/branches'),
+      authFetch('/api/services'),
+      authFetch('/api/parts'),
+    ])
 
     if (!branchesResponse.ok) {
-      if (branchesResponse.status === 401 || branchesResponse.status === 403) {
-        await redirectByRole()
-        return
-      }
-
       throw new Error(await extractErrorMessage(branchesResponse, 'Neizdevās ielādēt filiāles.'))
     }
 
+    if (!servicesResponse.ok) {
+      throw new Error(await extractErrorMessage(servicesResponse, 'Neizdevās ielādēt pakalpojumus.'))
+    }
+
+    if (!partsResponse.ok) {
+      throw new Error(await extractErrorMessage(partsResponse, 'Neizdevās ielādēt detaļas.'))
+    }
+
     branches.value = (await branchesResponse.json()) ?? []
+    services.value = (await servicesResponse.json()) ?? []
+    parts.value = (await partsResponse.json()) ?? []
+
     syncSelectedBranch()
     await loadDevices()
+    ensureItems()
   } catch (error) {
     branches.value = []
+    services.value = []
+    parts.value = []
     devices.value = []
     form.branch_id = null
     form.device_id = null
+    form.items = []
     metaError.value = (error?.message || 'Neizdevās ielādēt pieteikuma datus.').slice(0, 260)
   } finally {
     metaLoading.value = false
@@ -451,7 +541,7 @@ async function loadOrders() {
   listError.value = ''
 
   try {
-    const response = await authFetch('/api/client/orders')
+    const response = await authFetch('/api/my/orders')
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -485,10 +575,14 @@ async function createOrder() {
     }
 
     if (!form.device_id) {
-      throw new Error('Vispirms pievieno ierīci.')
+      throw new Error('Lūdzu, izvēlies ierīci.')
     }
 
-    const response = await authFetch('/api/client/orders', {
+    if (form.items.length === 0) {
+      throw new Error('Pievieno vismaz vienu pozīciju.')
+    }
+
+    const response = await authFetch('/api/my/orders', {
       method: 'POST',
       json: {
         branch_id: form.branch_id,
@@ -496,8 +590,8 @@ async function createOrder() {
         problem_description: form.problem_description,
         items: form.items.map(item => ({
           item_type: item.item_type,
-          service_id: item.item_type === 'service' ? item.service_id : null,
-          part_id: item.item_type === 'part' ? item.part_id : null,
+          service_id: item.item_type === 'service' ? (item.service_id || null) : null,
+          part_id: item.item_type === 'part' ? (item.part_id || null) : null,
           quantity: item.quantity,
         })),
       },
@@ -515,6 +609,8 @@ async function createOrder() {
     const created = await response.json()
     localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
     createSuccess.value = `Izveidots: ${created.order_number}`
+    form.items = []
+    ensureItems()
     await loadOrders()
   } catch (error) {
     createError.value = (error?.message || 'Kļūda').slice(0, 260)
@@ -577,6 +673,7 @@ onMounted(async () => {
   await initAuth().catch(() => null)
   await loadMeta()
   applyDraft()
+  ensureItems()
   await loadOrders()
 })
 </script>
@@ -591,7 +688,7 @@ onMounted(async () => {
 }
 
 .page {
-  max-width: 980px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 22px 18px 34px;
 }
@@ -646,6 +743,13 @@ onMounted(async () => {
   font-size: 16px;
 }
 
+.cardSubtitle {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .sectionHeader {
   display: flex;
   justify-content: space-between;
@@ -663,32 +767,50 @@ onMounted(async () => {
 .control {
   width: 100%;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: 12px;
   border: 1px solid rgba(15, 23, 42, 0.14);
   background: #fff;
   outline: none;
+  font: inherit;
 }
 .control:focus {
   border-color: rgba(37, 99, 235, 0.6);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
+.textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
 .grid2 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
+  gap: 14px;
 }
-.grid2 > * { min-width: 0; }
 
-.items { display: grid; gap: 10px; margin-top: 10px; }
+.items {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .itemRow {
   display: grid;
-  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) minmax(90px, 120px) 44px;
+  grid-template-columns: minmax(140px, 180px) minmax(0, 1fr) minmax(110px, 130px) 44px;
   gap: 10px;
   align-items: center;
 }
-.itemRow > * { min-width: 0; }
+
+.qtyControl {
+  text-align: center;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: flex-end;
+}
 
 .orderCard { padding: 16px; }
 .orderTop {
@@ -751,6 +873,7 @@ onMounted(async () => {
   border-radius: 12px;
   cursor: pointer;
   font-weight: 700;
+  text-decoration: none;
 }
 .btn:disabled { opacity: 0.65; cursor: not-allowed; }
 
@@ -804,6 +927,16 @@ onMounted(async () => {
   border-color: rgba(34, 197, 94, 0.22);
 }
 
+.loadingBox,
+.emptyHint {
+  font-size: 14px;
+  color: #475569;
+  background: rgba(148, 163, 184, 0.10);
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
 .muted { color: #64748b; }
 .small { font-size: 12px; }
 
@@ -818,7 +951,7 @@ onMounted(async () => {
 }
 
 .modalCard {
-  width: min(100%, 520px);
+  width: min(100%, 560px);
   background: #fff;
   border-radius: 18px;
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -829,6 +962,7 @@ onMounted(async () => {
 .mt12 { margin-top: 12px; }
 .mt14 { margin-top: 14px; }
 .mt16 { margin-top: 16px; }
+.mt18 { margin-top: 18px; }
 .spacer { height: 10px; }
 
 @media (max-width: 920px) {
@@ -837,5 +971,7 @@ onMounted(async () => {
   .cost { text-align: left; }
   .grid2 { grid-template-columns: 1fr; }
   .itemRow { grid-template-columns: 1fr; }
+  .summaryRow { justify-content: flex-start; }
 }
 </style>
+

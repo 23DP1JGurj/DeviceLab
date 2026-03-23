@@ -22,9 +22,9 @@ class MyDeviceController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'type' => ['required', 'string', 'max:255'],
-            'brand' => ['nullable', 'string', 'max:255'],
-            'model' => ['nullable', 'string', 'max:255'],
+            'type' => ['required', 'string', 'in:phone,laptop,tablet,other'],
+            'brand' => ['required', 'string', 'max:255'],
+            'model' => ['required', 'string', 'max:255'],
             'serial_number' => [
                 'nullable',
                 'string',
@@ -36,8 +36,8 @@ class MyDeviceController extends Controller
         $device = Device::create([
             'user_id' => $request->user()->id,
             'type' => $data['type'],
-            'brand' => $data['brand'] ?? null,
-            'model' => $data['model'] ?? null,
+            'brand' => $data['brand'],
+            'model' => $data['model'],
             'serial_number' => $data['serial_number'] ?? null,
         ]);
 

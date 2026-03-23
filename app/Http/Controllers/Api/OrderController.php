@@ -11,6 +11,7 @@ use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
@@ -34,7 +35,7 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        $data = $request->validate([
+        $validator = Validator::make($request->all(), [
             'branch_id' => ['required', 'integer', 'exists:branches,id'],
             'device_id' => ['required', 'integer', 'exists:devices,id'],
             'problem_description' => ['nullable', 'string'],
@@ -45,14 +46,29 @@ class OrderController extends Controller
             'items.*.quantity' => ['required', 'integer', 'min:1'],
         ]);
 
+        $validator->after(function ($validator) use ($request) {
+            foreach ((array) $request->input('items', []) as $index => $item) {
+                $itemType = $item['item_type'] ?? null;
+                $serviceId = $item['service_id'] ?? null;
+                $partId = $item['part_id'] ?? null;
+
+                if ($itemType === 'service' && ! $serviceId) {
+                    $validator->errors()->add("items.$index.service_id", 'Choose a service for this item.');
+                }
+
+                if ($itemType === 'part' && ! $partId) {
+                    $validator->errors()->add("items.$index.part_id", 'Choose a part for this item.');
+                }
+            }
+        });
+
+        $data = $validator->validate();
+
         $this->ensureDeviceCanBeUsed($user, (int) $data['device_id']);
 
         return DB::transaction(function () use ($data, $user) {
-            $todayCount = Order::whereDate('created_at', today())->count() + 1;
-            $orderNumber = 'DL-' . now()->format('Ymd') . '-' . str_pad((string) $todayCount, 4, '0', STR_PAD_LEFT);
-
             $order = Order::create([
-                'order_number' => $orderNumber,
+                'order_number' => $this->generateOrderNumber(),
                 'user_id' => $user->id,
                 'branch_id' => $data['branch_id'],
                 'device_id' => $data['device_id'],
@@ -129,7 +145,12 @@ class OrderController extends Controller
 
     private function buildOrdersQuery(Request $request, User $user, bool $forceOwnOrders = false)
     {
-        $query = Order::with(['items.service', 'items.part']);
+        $query = Order::with([
+            'branch:id,name,address',
+            'device:id,type,brand,model,serial_number',
+            'items.service:id,name,base_price',
+            'items.part:id,name,unit_price',
+        ]);
 
         if ($forceOwnOrders || $user->hasRole(User::ROLE_CLIENT)) {
             $query->where('user_id', $user->id);
@@ -167,5 +188,31 @@ class OrderController extends Controller
                 'device_id' => ['Selected device does not belong to the current user.'],
             ]);
         }
+    }
+
+    private function generateOrderNumber(): string
+    {
+        $prefix = 'DL-' . now()->format('Ymd') . '-';
+        $latestOrderNumber = Order::query()
+            ->where('order_number', 'like', $prefix . '%')
+            ->orderByDesc('order_number')
+            ->value('order_number');
+
+        $nextNumber = 1;
+
+        if ($latestOrderNumber) {
+            $lastSequence = (int) substr($latestOrderNumber, strlen($prefix));
+            $nextNumber = $lastSequence + 1;
+        }
+
+        do {
+            $orderNumber = $prefix . str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
+
+            if (! Order::query()->where('order_number', $orderNumber)->exists()) {
+                return $orderNumber;
+            }
+
+            $nextNumber++;
+        } while (true);
     }
 }

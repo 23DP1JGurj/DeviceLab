@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <div class="topbar">
       <div class="titleBlock">
@@ -8,9 +8,6 @@
 
       <div class="topActions">
         <RouterLink class="btn btnGhost" to="/">← Home</RouterLink>
-        <button class="btn btnSoft" type="button" @click="loadOrders" :disabled="listLoading">
-          {{ listLoading ? 'Loading...' : 'Refresh' }}
-        </button>
         <AccountMenu />
       </div>
     </div>
@@ -23,7 +20,6 @@
 
         <div class="row">
           <button class="btn btnGhost" type="button" @click="resetFilters">Reset</button>
-          <button class="btn btnSoft" type="button" @click="loadOrders">Refresh</button>
         </div>
       </div>
 
@@ -157,7 +153,7 @@
             </button>
 
             <div class="msg" v-if="saveError && saveErrorId === o.id">{{ saveError }}</div>
-            <div class="msg ok" v-else-if="saveOkId === o.id">Saved ✓</div>
+            <div class="msg ok" v-else-if="saveOkId === o.id">Saved вњ“</div>
           </div>
         </div>
       </div>
@@ -188,7 +184,7 @@ const saveOkId = ref(null)
 const filters = reactive({
   search: '',
   status: '',
-  branch_id: 1,
+  branch_id: '',
 })
 
 const edit = reactive({})
@@ -216,7 +212,9 @@ function buildOrdersUrl() {
 
   if (filters.search) params.set('search', filters.search)
   if (filters.status) params.set('status', filters.status)
-  if (filters.branch_id) params.set('branch_id', String(filters.branch_id))
+  if (filters.branch_id !== '' && filters.branch_id !== null) {
+    params.set('branch_id', String(filters.branch_id))
+  }
 
   const qs = params.toString()
   return qs ? `/api/staff/orders?${qs}` : '/api/staff/orders'
@@ -254,7 +252,7 @@ async function loadOrders() {
 function resetFilters() {
   filters.search = ''
   filters.status = ''
-  filters.branch_id = 1
+  filters.branch_id = ''
   loadOrders()
 }
 
@@ -563,3 +561,4 @@ onMounted(async () => {
   .gridEdit { grid-template-columns: 1fr; }
 }
 </style>
+

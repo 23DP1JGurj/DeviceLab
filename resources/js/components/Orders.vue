@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <!-- Header -->
     <div class="topbar">
@@ -9,9 +9,6 @@
 
       <div class="topActions">
         <RouterLink class="btn btnGhost" to="/">← Home</RouterLink>
-        <button class="btn btnSoft" type="button" @click="loadOrders" :disabled="listLoading">
-          {{ listLoading ? 'Loading...' : 'Refresh' }}
-        </button>
       </div>
     </div>
 
@@ -72,7 +69,7 @@
             <input class="control" v-model.number="it.quantity" type="number" min="1" placeholder="qty" />
 
             <button class="btnIcon btnDangerSoft" type="button" @click="removeItem(idx)" title="Remove">
-              ✕
+              вњ•
             </button>
           </div>
         </div>
@@ -97,7 +94,6 @@
 
         <div class="row">
           <button class="btn btnGhost" type="button" @click="resetFilters">Reset</button>
-          <button class="btn btnSoft" type="button" @click="loadOrders">Refresh</button>
         </div>
       </div>
 
@@ -150,7 +146,7 @@
               <span class="badge" :class="'st_' + o.status">{{ o.status }}</span>
             </div>
 
-            <div class="muted">{{ o.problem_description || '—' }}</div>
+            <div class="muted">{{ o.problem_description || 'вЂ”' }}</div>
 
             <div class="chips">
               <span class="chip">ID: {{ o.id }}</span>
@@ -162,7 +158,7 @@
 
           <div class="cost">
             <div class="muted small">Final cost</div>
-            <div class="costValue">{{ o.final_cost ?? '—' }}</div>
+            <div class="costValue">{{ o.final_cost ?? 'вЂ”' }}</div>
           </div>
         </div>
 
@@ -178,7 +174,7 @@
               <template v-else>
                 <b>part:</b> {{ it.part?.name || ('#' + it.part_id) }}
               </template>
-              — {{ it.quantity }} × {{ it.unit_price }} = <b>{{ it.line_total }}</b>
+              вЂ” {{ it.quantity }} Г— {{ it.unit_price }} = <b>{{ it.line_total }}</b>
             </li>
           </ul>
         </div>
@@ -227,7 +223,7 @@
             </button>
 
             <div class="msg" v-if="saveError && saveErrorId === o.id">{{ saveError }}</div>
-            <div class="msg ok" v-else-if="saveOkId === o.id">Saved ✅</div>
+            <div class="msg ok" v-else-if="saveOkId === o.id">Saved вњ…</div>
           </div>
         </div>
       </div>
@@ -259,7 +255,7 @@ const saveOkId = ref(null)
 const form = reactive({
   branch_id: 1,
   device_id: 1,
-  problem_description: 'Neieslēdzas',
+  problem_description: 'NeieslД“dzas',
   items: [
     { item_type: 'service', service_id: 1, part_id: null, quantity: 1 },
     { item_type: 'part', service_id: null, part_id: 1, quantity: 1 },
@@ -496,7 +492,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* IMPORTANT: fixes "вылазит из бокса" в grid */
+/* IMPORTANT: fixes "РІС‹Р»Р°Р·РёС‚ РёР· Р±РѕРєСЃР°" РІ grid */
 :global(*), :global(*::before), :global(*::after) { box-sizing: border-box; }
 :global(body) {
   margin: 0;
@@ -767,3 +763,4 @@ onMounted(() => {
   .itemRow { grid-template-columns: 1fr; }
 }
 </style>
+

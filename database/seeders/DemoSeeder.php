@@ -45,7 +45,7 @@ class DemoSeeder extends Seeder
             ],
         ]);
 
-        DB::table('services')->insertOrIgnore([
+        DB::table('services')->upsert([
             [
                 'id' => 1,
                 'name' => 'Diagnostika',
@@ -66,9 +66,19 @@ class DemoSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-        ]);
+            [
+                'id' => 3,
+                'name' => 'Akumulatora maiņa',
+                'description' => 'Akumulatora nomaiņa ar pilnu pārbaudi',
+                'base_price' => 35.00,
+                'estimated_minutes' => 60,
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ], ['id'], ['name', 'description', 'base_price', 'estimated_minutes', 'is_active', 'updated_at']);
 
-        DB::table('parts')->insertOrIgnore([
+        DB::table('parts')->upsert([
             [
                 'id' => 1,
                 'name' => 'iPhone ekrans',
@@ -81,7 +91,31 @@ class DemoSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-        ]);
+            [
+                'id' => 2,
+                'name' => 'Samsung akumulators',
+                'sku' => 'SMS-BAT-001',
+                'description' => 'Rezerves akumulators Samsung tālrunim',
+                'unit_price' => 29.00,
+                'stock_qty' => 7,
+                'min_stock_qty' => 1,
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 3,
+                'name' => 'USB-C ligzda',
+                'sku' => 'USB-C-PORT-001',
+                'description' => 'Rezerves USB-C uzlādes ligzda',
+                'unit_price' => 14.50,
+                'stock_qty' => 12,
+                'min_stock_qty' => 2,
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ], ['id'], ['name', 'sku', 'description', 'unit_price', 'stock_qty', 'min_stock_qty', 'is_active', 'updated_at']);
 
         DB::table('devices')->updateOrInsert(
             ['serial_number' => 'SN-ADMIN-001'],

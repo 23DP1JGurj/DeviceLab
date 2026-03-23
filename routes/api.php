@@ -30,19 +30,19 @@ Route::prefix('auth')
     });
 
 Route::get('/branches', fn () => Branch::query()
-    ->select('id', 'name', 'address')
+    ->select('id', 'name', 'address', 'phone', 'email', 'working_hours')
     ->where('is_active', 1)
     ->orderBy('name')
     ->get());
 
 Route::get('/services', fn () => Service::query()
-    ->select('id', 'name', 'base_price')
+    ->select('id', 'name', 'description', 'base_price')
     ->where('is_active', 1)
     ->orderBy('name')
     ->get());
 
 Route::get('/parts', fn () => Part::query()
-    ->select('id', 'name', 'unit_price', 'stock_qty')
+    ->select('id', 'name', 'sku', 'unit_price', 'stock_qty')
     ->where('is_active', 1)
     ->orderBy('name')
     ->get());
@@ -53,6 +53,9 @@ Route::prefix('my')
         Route::get('/devices', [MyDeviceController::class, 'index']);
         Route::post('/devices', [MyDeviceController::class, 'store']);
         Route::delete('/devices/{device}', [MyDeviceController::class, 'destroy']);
+        Route::get('/orders', [OrderController::class, 'clientIndex']);
+        Route::post('/orders', [OrderController::class, 'store']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
     });
 
 Route::prefix('client')

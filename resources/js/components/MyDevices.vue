@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <div class="topbar">
       <div class="titleBlock">
@@ -8,9 +8,6 @@
 
       <div class="topActions">
         <RouterLink class="btn btnGhost" to="/">← Home</RouterLink>
-        <button class="btn btnSoft" type="button" @click="loadDevices" :disabled="listLoading">
-          {{ listLoading ? 'Loading...' : 'Refresh' }}
-        </button>
         <AccountMenu />
       </div>
     </div>
@@ -405,3 +402,4 @@ onMounted(async () => {
   .deviceTop { align-items: flex-start; flex-direction: column; }
 }
 </style>
+
