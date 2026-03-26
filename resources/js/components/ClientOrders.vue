@@ -28,7 +28,7 @@
         <label class="field">
           <div class="label">Filiāle</div>
           <select class="control" v-model.number="form.branch_id" :disabled="metaLoading || branches.length === 0">
-            <option value="">Izvēlies filiāli</option>
+            <option value="" disabled hidden>Izvēlies filiāli</option>
             <option v-for="branch in branches" :key="branch.id" :value="branch.id">
               {{ branch.name }}{{ branch.address ? ` — ${branch.address}` : '' }}
             </option>
@@ -38,7 +38,7 @@
         <label class="field">
           <div class="label">Ierīce</div>
           <select class="control" v-model="deviceSelectValue" :disabled="metaLoading">
-            <option value="">Izvēlies ierīci</option>
+            <option value="" disabled hidden>Izvēlies ierīci</option>
             <option v-for="device in devices" :key="device.id" :value="device.id">
               {{ formatDeviceLabel(device) }}
             </option>
@@ -74,7 +74,7 @@
               v-model.number="item.service_id"
               :disabled="services.length === 0"
             >
-              <option value="">Izvēlies pakalpojumu</option>
+              <option value="" disabled hidden>Izvēlies pakalpojumu</option>
               <option v-for="service in services" :key="service.id" :value="service.id">
                 {{ service.name }} — {{ formatMoney(service.base_price) }}
               </option>
@@ -86,7 +86,7 @@
               v-model.number="item.part_id"
               :disabled="parts.length === 0"
             >
-              <option value="">Izvēlies detaļu</option>
+              <option value="" disabled hidden>Izvēlies detaļu</option>
               <option v-for="part in parts" :key="part.id" :value="part.id">
                 {{ part.name }} — {{ formatMoney(part.unit_price) }}
               </option>
