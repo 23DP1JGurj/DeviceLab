@@ -12,171 +12,215 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="cardHead">
-        <div>
-          <div class="cardTitle">Jauns pieteikums</div>
-          <div class="cardSubtitle">Izvēlies filiāli, ierīci un pievieno pozīcijas bez manuālas ID ievades.</div>
-        </div>
-
-        <button class="btn btnSoft" type="button" @click="addItem">+ Pievienot pozīciju</button>
-      </div>
-
-      <div v-if="metaLoading" class="loadingBox">Ielādējam filiāles, ierīces un cenu katalogu...</div>
-
-      <div class="grid2">
-        <label class="field">
-          <div class="label">Filiāle</div>
-          <select class="control" v-model.number="form.branch_id" :disabled="metaLoading || branches.length === 0">
-            <option value="" disabled hidden>Izvēlies filiāli</option>
-            <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-              {{ branch.name }}{{ branch.address ? ` — ${branch.address}` : '' }}
-            </option>
-          </select>
-        </label>
-
-        <label class="field">
-          <div class="label">Ierīce</div>
-          <select class="control" v-model="deviceSelectValue" :disabled="metaLoading">
-            <option value="" disabled hidden>Izvēlies ierīci</option>
-            <option v-for="device in devices" :key="device.id" :value="device.id">
-              {{ formatDeviceLabel(device) }}
-            </option>
-            <option :value="ADD_DEVICE_OPTION">+ Pievienot ierīci</option>
-          </select>
-        </label>
-      </div>
-
-      <div v-if="metaError" class="msg mt12">{{ metaError }}</div>
-
-      <label class="field mt12">
-        <div class="label">Problēmas apraksts</div>
-        <textarea class="control textarea" v-model="form.problem_description" rows="3"></textarea>
-      </label>
-
-      <div class="mt18">
-        <div class="sectionTitle">Pozīcijas</div>
-
-        <div v-if="form.items.length === 0" class="emptyHint mt12">
-          Pievieno vismaz vienu pakalpojumu vai detaļu.
-        </div>
-
-        <div class="items">
-          <div class="itemRow" v-for="(item, index) in form.items" :key="index">
-            <select class="control" v-model="item.item_type" @change="syncItemSelection(item)">
-              <option value="service">Pakalpojums</option>
-              <option value="part">Detaļa</option>
-            </select>
-
-            <select
-              v-if="item.item_type === 'service'"
-              class="control"
-              v-model.number="item.service_id"
-              :disabled="services.length === 0"
-            >
-              <option value="" disabled hidden>Izvēlies pakalpojumu</option>
-              <option v-for="service in services" :key="service.id" :value="service.id">
-                {{ service.name }} — {{ formatMoney(service.base_price) }}
-              </option>
-            </select>
-
-            <select
-              v-else
-              class="control"
-              v-model.number="item.part_id"
-              :disabled="parts.length === 0"
-            >
-              <option value="" disabled hidden>Izvēlies detaļu</option>
-              <option v-for="part in parts" :key="part.id" :value="part.id">
-                {{ part.name }} — {{ formatMoney(part.unit_price) }}
-              </option>
-            </select>
-
-            <input class="control qtyControl" v-model.number="item.quantity" type="number" min="1" placeholder="Daudzums" />
-
-            <button class="btnIcon btnDangerSoft" type="button" @click="removeItem(index)" title="Dzēst">×</button>
+    <div class="dashboardGrid">
+      <section class="card formCard">
+        <div class="cardHead">
+          <div>
+            <div class="cardTitle">Jauns pieteikums</div>
+            <div class="cardSubtitle">Izvēlies filiāli, ierīci un pievieno pozīcijas bez manuālas ID ievades.</div>
           </div>
         </div>
 
-        <div class="summaryRow mt14">
-          <div class="muted">Aptuvenā summa: <b>{{ formatMoney(draftTotal) }}</b></div>
+        <div v-if="metaLoading" class="loadingBox">Ielādējam filiāles, ierīces un cenu katalogu...</div>
+        <div v-if="metaError" class="msg mt12">{{ metaError }}</div>
+
+        <div class="formSection">
+          <div class="sectionEyebrow">Pamatinformācija</div>
+
+          <div class="grid2">
+            <label class="field">
+              <div class="label">Filiāle</div>
+              <select class="control" v-model.number="form.branch_id" :disabled="metaLoading || branches.length === 0">
+                <option value="" disabled hidden>Izvēlies filiāli</option>
+                <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                  {{ branch.name }}{{ branch.address ? ` — ${branch.address}` : '' }}
+                </option>
+              </select>
+            </label>
+
+            <label class="field">
+              <div class="label">Ierīce</div>
+              <select class="control" v-model="deviceSelectValue" :disabled="metaLoading">
+                <option value="" disabled hidden>Izvēlies ierīci</option>
+                <option v-for="device in devices" :key="device.id" :value="device.id">
+                  {{ formatDeviceLabel(device) }}
+                </option>
+                <option :value="ADD_DEVICE_OPTION">+ Pievienot ierīci</option>
+              </select>
+            </label>
+          </div>
         </div>
 
-        <div class="row mt14">
-          <button
-            class="btn btnPrimary"
-            type="button"
-            @click="createOrder"
-            :disabled="creating || metaLoading || !form.branch_id || !form.device_id || form.items.length === 0"
-          >
-            {{ creating ? 'Veido...' : 'Izveidot pieteikumu' }}
-          </button>
+        <div class="formSection">
+          <div class="sectionEyebrow">Problēmas apraksts</div>
 
-          <div class="msg" v-if="createError">{{ createError }}</div>
-          <div class="msg ok" v-else-if="createSuccess">{{ createSuccess }}</div>
+          <label class="field">
+            <div class="label">Apraksts</div>
+            <textarea
+              class="control textarea"
+              v-model="form.problem_description"
+              rows="4"
+              placeholder="Īsi apraksti problēmu"
+            ></textarea>
+          </label>
         </div>
-      </div>
+
+        <div class="formSection">
+          <div class="sectionHead">
+            <div>
+              <div class="sectionEyebrow">Pozīcijas</div>
+              <div class="sectionHint">Pievieno pakalpojumu vai detaļu, ko vēlies iekļaut pieteikumā.</div>
+            </div>
+
+            <button class="btn btnSoft btnSmall" type="button" @click="addItem">+ Pievienot pozīciju</button>
+          </div>
+
+          <div v-if="form.items.length === 0" class="emptyHint mt12">
+            Pievieno vismaz vienu pakalpojumu vai detaļu.
+          </div>
+
+          <div class="items">
+            <div class="itemRow" v-for="(item, index) in form.items" :key="index">
+              <select class="control typeControl" v-model="item.item_type" @change="syncItemSelection(item)">
+                <option value="service">Pakalpojums</option>
+                <option value="part">Detaļa</option>
+              </select>
+
+              <select
+                v-if="item.item_type === 'service'"
+                class="control"
+                v-model.number="item.service_id"
+                :disabled="services.length === 0"
+              >
+                <option value="" disabled hidden>Izvēlies pakalpojumu</option>
+                <option v-for="service in services" :key="service.id" :value="service.id">
+                  {{ service.name }} — {{ formatMoney(service.base_price) }}
+                </option>
+              </select>
+
+              <select
+                v-else
+                class="control"
+                v-model.number="item.part_id"
+                :disabled="parts.length === 0"
+              >
+                <option value="" disabled hidden>Izvēlies detaļu</option>
+                <option v-for="part in parts" :key="part.id" :value="part.id">
+                  {{ part.name }} — {{ formatMoney(part.unit_price) }}
+                </option>
+              </select>
+
+              <input class="control qtyControl" v-model.number="item.quantity" type="number" min="1" placeholder="Daudzums" />
+
+              <button class="btnIcon btnDangerSoft" type="button" @click="removeItem(index)" title="Dzēst">×</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="summaryCard">
+        <div class="summaryTitle">Kopsavilkums</div>
+        <div class="summaryText">Pārbaudi pieteikuma detaļas pirms nosūtīšanas.</div>
+
+        <div class="summaryList">
+          <div class="summaryItem">
+            <span>Filiāle</span>
+            <b>{{ selectedBranch ? selectedBranch.name : 'Nav izvēlēta' }}</b>
+          </div>
+          <div class="summaryItem">
+            <span>Ierīce</span>
+            <b>{{ selectedDevice ? formatDeviceLabel(selectedDevice) : 'Nav izvēlēta' }}</b>
+          </div>
+          <div class="summaryItem">
+            <span>Pozīcijas</span>
+            <b>{{ form.items.length }}</b>
+          </div>
+        </div>
+
+        <div class="summaryTotal">
+          <span>Aptuvenā summa</span>
+          <strong>{{ formatMoney(draftTotal) }}</strong>
+        </div>
+
+        <button
+          class="btn btnPrimary summaryCta"
+          type="button"
+          @click="createOrder"
+          :disabled="creating || metaLoading || !form.branch_id || !form.device_id || form.items.length === 0"
+        >
+          {{ creating ? 'Veido...' : 'Izveidot pieteikumu' }}
+        </button>
+
+        <div class="msg mt12" v-if="createError">{{ createError }}</div>
+        <div class="msg ok mt12" v-else-if="createSuccess">{{ createSuccess }}</div>
+      </aside>
     </div>
 
-    <div class="sectionHeader">
-        <div class="sectionTitle">Mani pasūtījumi</div>
+    <section class="ordersSection">
+      <div class="sectionHeader">
+        <div>
+          <div class="sectionTitle">Mani pasūtījumi</div>
+          <div class="sectionHint">Pārskati savus jaunākos servisa pieteikumus.</div>
+        </div>
         <div class="muted">Kopā: {{ total }}</div>
       </div>
 
-    <div v-if="listLoading" class="card">
-      <div class="loadingBox">Ielādējam pasūtījumus...</div>
-    </div>
-
-    <div v-else>
-      <div v-if="listError" class="card">
-        <div class="msg">{{ listError }}</div>
+      <div v-if="listLoading" class="card stateCard">
+        <div class="loadingBox">Ielādējam pasūtījumus...</div>
       </div>
 
-      <div v-else-if="orders.length === 0" class="card">
-        <div class="muted">Pasūtījumu vēl nav.</div>
-      </div>
+      <div v-else>
+        <div v-if="listError" class="card stateCard">
+          <div class="msg">{{ listError }}</div>
+        </div>
 
-      <div class="card orderCard" v-for="order in orders" :key="order.id">
-        <div class="orderTop">
-          <div class="orderMain">
-            <div class="orderLine">
-              <div class="orderNum">{{ order.order_number }}</div>
-              <span class="badge" :class="'st_' + order.status">{{ order.status }}</span>
+        <div v-else-if="orders.length === 0" class="card stateCard">
+          <div class="muted">Pasūtījumu vēl nav.</div>
+        </div>
+
+        <div class="card orderCard" v-for="order in orders" :key="order.id">
+          <div class="orderTop">
+            <div class="orderMain">
+              <div class="orderLine">
+                <div class="orderNum">{{ order.order_number }}</div>
+                <span class="badge" :class="'st_' + order.status">{{ order.status }}</span>
+              </div>
+
+              <div class="orderDescription">{{ order.problem_description || '—' }}</div>
             </div>
 
-            <div class="muted">{{ order.problem_description || '—' }}</div>
-
-            <div class="chips">
-              <span class="chip">Filiāle: {{ order.branch?.name || order.branch_id }}</span>
-              <span class="chip">Ierīce: {{ orderDeviceLabel(order.device) }}</span>
-              <span class="chip">Izveidots: {{ formatDate(order.created_at) }}</span>
+            <div class="cost">
+              <div class="muted small">Galīgā summa</div>
+              <div class="costValue">{{ order.final_cost != null ? formatMoney(order.final_cost) : '—' }}</div>
             </div>
           </div>
 
-          <div class="cost">
-            <div class="muted small">Galīgā summa</div>
-            <div class="costValue">{{ order.final_cost != null ? formatMoney(order.final_cost) : '—' }}</div>
+          <div class="chips">
+            <span class="chip">Filiāle: {{ order.branch?.name || order.branch_id }}</span>
+            <span class="chip">Ierīce: {{ orderDeviceLabel(order.device) }}</span>
+            <span class="chip">Izveidots: {{ formatDate(order.created_at) }}</span>
+          </div>
+
+          <div class="itemsBlock">
+            <div class="subTitle">Pozīcijas</div>
+            <div class="orderItems">
+              <div class="orderItem" v-for="item in order.items" :key="item.id">
+                <div>
+                  <span class="itemKind">{{ item.item_type === 'service' ? 'pakalpojums' : 'detaļa' }}</span>
+                  <b>
+                    {{ item.item_type === 'service'
+                      ? (item.service?.name || ('#' + item.service_id))
+                      : (item.part?.name || ('#' + item.part_id)) }}
+                  </b>
+                </div>
+                <span>{{ item.quantity }} × {{ formatMoney(item.unit_price) }}</span>
+                <strong>{{ formatMoney(item.line_total) }}</strong>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div class="divider"></div>
-
-        <div class="itemsBlock">
-          <div class="subTitle">Pozīcijas</div>
-          <ul class="itemsList">
-            <li v-for="item in order.items" :key="item.id">
-              <template v-if="item.item_type === 'service'">
-                <b>pakalpojums:</b> {{ item.service?.name || ('#' + item.service_id) }}
-              </template>
-              <template v-else>
-                <b>detaļa:</b> {{ item.part?.name || ('#' + item.part_id) }}
-              </template>
-              — {{ item.quantity }} × {{ formatMoney(item.unit_price) }} = <b>{{ formatMoney(item.line_total) }}</b>
-            </li>
-          </ul>
-        </div>
       </div>
-    </div>
+    </section>
 
     <div v-if="isDeviceModalOpen" class="modalOverlay" @click.self="closeDeviceModal">
       <div class="modalCard">
@@ -308,6 +352,14 @@ const draftTotal = computed(() => form.items.reduce((sum, item) => {
   return sum + (unitPrice * Number(item.quantity || 0))
 }, 0))
 
+const selectedBranch = computed(() => (
+  branches.value.find(branch => branch.id === Number(form.branch_id)) ?? null
+))
+
+const selectedDevice = computed(() => (
+  devices.value.find(device => device.id === Number(form.device_id)) ?? null
+))
+
 function formatMoney(value) {
   const amount = Number(value || 0)
   return `${amount.toFixed(2)} €`
@@ -326,11 +378,11 @@ function formatDeviceLabel(device) {
 
   const parts = [device.brand, device.model].filter(Boolean)
   const title = parts.join(' ')
-  return title ? `${title} (${device.type})` : `IerД«ce #${device.id}`
+  return title ? `${title} (${device.type})` : `Ierīce #${device.id}`
 }
 
 function orderDeviceLabel(device) {
-  return device ? formatDeviceLabel(device) : 'вЂ”'
+  return device ? formatDeviceLabel(device) : '—'
 }
 
 function defaultItemType() {
@@ -972,6 +1024,442 @@ onMounted(async () => {
   .grid2 { grid-template-columns: 1fr; }
   .itemRow { grid-template-columns: 1fr; }
   .summaryRow { justify-content: flex-start; }
+}
+
+/* Dashboard redesign */
+:global(body) {
+  background: #f3f6fb;
+  color: #071833;
+}
+
+.page {
+  max-width: 1180px;
+  padding: 28px 22px 48px;
+}
+
+.topbar {
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.h1 {
+  color: #071833;
+  font-size: 36px;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.subtitle,
+.muted,
+.cardSubtitle,
+.sectionHint {
+  color: #64748b;
+}
+
+.topActions {
+  justify-content: flex-end;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(280px, 0.9fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.card,
+.summaryCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
+}
+
+.formCard {
+  padding: 24px;
+  margin-top: 0;
+}
+
+.cardHead {
+  margin-bottom: 20px;
+}
+
+.cardTitle {
+  color: #071833;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.cardSubtitle {
+  max-width: 620px;
+  font-size: 14px;
+}
+
+.formSection {
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid #e8edf5;
+}
+
+.formSection:first-of-type {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+
+.sectionHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.sectionEyebrow {
+  color: #071833;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.sectionHint {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.grid2 {
+  gap: 16px;
+}
+
+.label {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.control {
+  min-height: 50px;
+  border-radius: 14px;
+  border-color: #d8e0eb;
+  color: #071833;
+  background: #fff;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.control:hover {
+  border-color: #bdc9d9;
+}
+
+.control:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.textarea {
+  min-height: 116px;
+  line-height: 1.5;
+}
+
+.items {
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.itemRow {
+  grid-template-columns: minmax(130px, 170px) minmax(0, 1fr) minmax(92px, 120px) 42px;
+  gap: 10px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+.typeControl {
+  font-weight: 700;
+}
+
+.qtyControl {
+  text-align: center;
+  font-weight: 700;
+}
+
+.btn {
+  border-radius: 14px;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btnPrimary {
+  background: #2563eb;
+  border-color: #2563eb;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+}
+
+.btnSoft {
+  background: #f8fafc;
+  border-color: #d8e0eb;
+}
+
+.btnSmall {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.btnIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+}
+
+.summaryCard {
+  position: sticky;
+  top: 22px;
+  padding: 22px;
+}
+
+.summaryTitle {
+  color: #071833;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.summaryText {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.summaryList {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.summaryItem {
+  display: grid;
+  gap: 5px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e8edf5;
+}
+
+.summaryItem span,
+.summaryTotal span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.summaryItem b {
+  color: #071833;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.summaryTotal {
+  display: grid;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 18px;
+  background: #eef5ff;
+  border: 1px solid #d7e8ff;
+}
+
+.summaryTotal strong {
+  color: #071833;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.summaryCta {
+  width: 100%;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 14px 16px;
+  font-size: 15px;
+}
+
+.ordersSection {
+  margin-top: 28px;
+}
+
+.sectionHeader {
+  margin: 0 0 14px;
+  padding: 0 2px;
+}
+
+.sectionTitle {
+  color: #071833;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.stateCard {
+  margin-top: 0;
+}
+
+.orderCard {
+  padding: 20px;
+  margin-top: 14px;
+}
+
+.orderTop {
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+  align-items: start;
+}
+
+.orderLine {
+  gap: 12px;
+}
+
+.orderNum {
+  color: #071833;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.orderDescription {
+  margin-top: 8px;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.costValue {
+  color: #071833;
+  font-size: 26px;
+}
+
+.badge {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.chips {
+  margin-top: 16px;
+  gap: 9px;
+}
+
+.chip {
+  background: #f1f5f9;
+  border-color: #dbe4ef;
+  color: #334155;
+  font-weight: 600;
+}
+
+.itemsBlock {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e8edf5;
+}
+
+.subTitle {
+  color: #071833;
+  font-size: 14px;
+}
+
+.orderItems {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.orderItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.orderItem b {
+  color: #071833;
+}
+
+.orderItem span,
+.orderItem strong {
+  white-space: nowrap;
+}
+
+.itemKind {
+  display: inline-block;
+  margin-right: 8px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.loadingBox,
+.emptyHint,
+.msg {
+  border-radius: 14px;
+}
+
+@media (max-width: 980px) {
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryCard {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 20px 14px 36px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .h1 {
+    font-size: 30px;
+  }
+
+  .formCard,
+  .summaryCard,
+  .orderCard {
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .sectionHead {
+    flex-direction: column;
+  }
+
+  .grid2,
+  .itemRow,
+  .orderTop,
+  .orderItem {
+    grid-template-columns: 1fr;
+  }
+
+  .cost {
+    text-align: left;
+  }
+
+  .orderItem span,
+  .orderItem strong {
+    white-space: normal;
+  }
 }
 </style>
 
