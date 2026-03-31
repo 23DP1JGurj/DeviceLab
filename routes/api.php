@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DeviceCatalogController;
 use App\Http\Controllers\Api\MyDeviceController;
 use App\Http\Controllers\Api\OrderController;
 use App\Models\Branch;
@@ -46,6 +47,9 @@ Route::get('/parts', fn () => Part::query()
     ->where('is_active', 1)
     ->orderBy('name')
     ->get());
+
+Route::get('/device-brands', [DeviceCatalogController::class, 'brands']);
+Route::get('/device-models', [DeviceCatalogController::class, 'models']);
 
 Route::prefix('my')
     ->middleware(array_merge($sessionMiddleware, ['auth', 'role:client']))

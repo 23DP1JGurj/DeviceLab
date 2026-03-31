@@ -30,19 +30,25 @@
 
         <label class="field">
           <div class="label">Brand</div>
-          <input class="control" v-model.trim="form.brand" type="text" placeholder="Apple, Samsung..." />
+          <AutocompleteInput
+            v-model.trim="form.brand"
+            :suggestions="brandSuggestions"
+            placeholder="Apple, Samsung..."
+            @input="loadBrandSuggestions"
+            @select="loadModelSuggestions"
+          />
         </label>
       </div>
 
-      <div class="grid2 mt12">
+      <div class="mt12">
         <label class="field">
           <div class="label">Model</div>
-          <input class="control" v-model.trim="form.model" type="text" placeholder="iPhone 12..." />
-        </label>
-
-        <label class="field">
-          <div class="label">Serial number</div>
-          <input class="control" v-model.trim="form.serial_number" type="text" placeholder="Optional" />
+          <AutocompleteInput
+            v-model.trim="form.model"
+            placeholder="iPhone 12..."
+            :suggestions="modelSuggestions"
+            @input="loadModelSuggestions"
+          />
         </label>
       </div>
 
@@ -78,9 +84,6 @@
         <div class="deviceTop">
           <div>
             <div class="deviceTitle">{{ formatDeviceLabel(device) }}</div>
-            <div class="muted">
-              Serial: {{ device.serial_number || '—' }}
-            </div>
           </div>
 
           <button class="btn btnDanger" type="button" @click="deleteDevice(device)" :disabled="deletingId === device.id">
@@ -93,10 +96,12 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
+import AutocompleteInput from './AutocompleteInput.vue'
 import { authFetch, extractErrorMessage, initAuth } from '../auth'
+import { fetchDeviceBrands, fetchDeviceModels } from '../deviceCatalog'
 
 const router = useRouter()
 
@@ -109,19 +114,20 @@ const createError = ref('')
 const createSuccess = ref('')
 
 const deletingId = ref(null)
+const brandSuggestions = ref([])
+const modelSuggestions = ref([])
 
 const form = reactive({
   type: 'phone',
   brand: '',
   model: '',
-  serial_number: '',
 })
 
 function resetForm() {
   form.type = 'phone'
   form.brand = ''
   form.model = ''
-  form.serial_number = ''
+  modelSuggestions.value = []
 }
 
 function formatDeviceLabel(device) {
@@ -167,7 +173,6 @@ async function createDevice() {
         type: form.type,
         brand: form.brand || null,
         model: form.model || null,
-        serial_number: form.serial_number || null,
       },
     })
 
@@ -217,8 +222,27 @@ async function deleteDevice(device) {
   }
 }
 
+async function loadBrandSuggestions() {
+  brandSuggestions.value = await fetchDeviceBrands(form.brand)
+}
+
+async function loadModelSuggestions() {
+  modelSuggestions.value = await fetchDeviceModels(form.brand, form.model)
+}
+
+watch(
+  () => form.brand,
+  async () => {
+    form.model = ''
+    modelSuggestions.value = []
+    await loadBrandSuggestions()
+    await loadModelSuggestions()
+  },
+)
+
 onMounted(async () => {
   await initAuth().catch(() => null)
+  await loadBrandSuggestions()
   await loadDevices()
 })
 </script>

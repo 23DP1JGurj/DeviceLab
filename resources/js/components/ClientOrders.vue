@@ -244,19 +244,25 @@
         <div class="grid2 mt12">
           <label class="field">
             <div class="label">Zīmols</div>
-            <input class="control" v-model.trim="deviceForm.brand" type="text" />
+            <AutocompleteInput
+              v-model.trim="deviceForm.brand"
+              :suggestions="brandSuggestions"
+              placeholder="Apple, Samsung..."
+              @input="loadBrandSuggestions"
+              @select="loadModelSuggestions"
+            />
           </label>
 
           <label class="field">
             <div class="label">Modelis</div>
-            <input class="control" v-model.trim="deviceForm.model" type="text" />
+            <AutocompleteInput
+              v-model.trim="deviceForm.model"
+              :suggestions="modelSuggestions"
+              placeholder="iPhone 14 Pro..."
+              @input="loadModelSuggestions"
+            />
           </label>
         </div>
-
-        <label class="field mt12">
-          <div class="label">Sērijas numurs</div>
-          <input class="control" v-model.trim="deviceForm.serial_number" type="text" />
-        </label>
 
         <div v-if="deviceErrors.length > 0" class="msg mt12">
           <div v-for="(error, index) in deviceErrors" :key="index">{{ error }}</div>
@@ -276,10 +282,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
+import AutocompleteInput from './AutocompleteInput.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
+import { fetchDeviceBrands, fetchDeviceModels } from '../deviceCatalog'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 const ADD_DEVICE_OPTION = '__add_device__'
@@ -305,6 +313,8 @@ const createSuccess = ref('')
 const isDeviceModalOpen = ref(false)
 const deviceSaving = ref(false)
 const deviceErrors = ref([])
+const brandSuggestions = ref([])
+const modelSuggestions = ref([])
 const deviceSelectValue = computed({
   get() {
     return form.device_id ? String(form.device_id) : ''
@@ -330,7 +340,6 @@ const deviceForm = reactive({
   type: 'phone',
   brand: '',
   model: '',
-  serial_number: '',
 })
 
 const OFFICE_TO_BRANCH_ID = {
@@ -513,13 +522,14 @@ function resetDeviceForm() {
   deviceForm.type = 'phone'
   deviceForm.brand = ''
   deviceForm.model = ''
-  deviceForm.serial_number = ''
   deviceErrors.value = []
+  modelSuggestions.value = []
 }
 
 function openDeviceModal() {
   resetDeviceForm()
   isDeviceModalOpen.value = true
+  loadBrandSuggestions()
 }
 
 function closeDeviceModal() {
@@ -682,7 +692,6 @@ async function saveDevice() {
         type: deviceForm.type,
         brand: deviceForm.brand,
         model: deviceForm.model,
-        serial_number: deviceForm.serial_number || null,
       },
     })
 
@@ -720,6 +729,24 @@ async function saveDevice() {
     deviceSaving.value = false
   }
 }
+
+async function loadBrandSuggestions() {
+  brandSuggestions.value = await fetchDeviceBrands(deviceForm.brand)
+}
+
+async function loadModelSuggestions() {
+  modelSuggestions.value = await fetchDeviceModels(deviceForm.brand, deviceForm.model)
+}
+
+watch(
+  () => deviceForm.brand,
+  async () => {
+    deviceForm.model = ''
+    modelSuggestions.value = []
+    await loadBrandSuggestions()
+    await loadModelSuggestions()
+  },
+)
 
 onMounted(async () => {
   await initAuth().catch(() => null)

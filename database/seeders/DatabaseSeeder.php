@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AuthDemoSeeder::class,
             DemoSeeder::class,
+            PhoneModelSeeder::class,
         ]);
     }
 }
