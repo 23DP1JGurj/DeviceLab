@@ -87,6 +87,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
+import { formatDevice } from '../deviceFormat'
 
 const router = useRouter()
 const orders = ref([])
@@ -103,9 +104,7 @@ function formatMoney(value) {
 }
 
 function orderDeviceLabel(device) {
-  if (!device) return '—'
-  const title = [device.brand, device.model].filter(Boolean).join(' ')
-  return title ? `${title} (${device.type})` : `Ierīce #${device.id}`
+  return formatDevice(device)
 }
 
 function itemName(item) {

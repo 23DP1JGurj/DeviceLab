@@ -16,13 +16,31 @@
       <section class="card formCard">
         <div class="cardHead">
           <div>
-            <div class="cardTitle">Jauns pieteikums</div>
-            <div class="cardSubtitle">Izvēlies filiāli, ierīci un pievieno pozīcijas bez manuālas ID ievades.</div>
+            <div class="cardTitle">Izveidot jaunu pieteikumu</div>
+            <div class="cardSubtitle">Izvēlies pieteikuma veidu, filiāli un ierīci. Servisa pozīcijas tiks sagatavotas automātiski.</div>
           </div>
         </div>
 
         <div v-if="metaLoading" class="loadingBox">Ielādējam filiāles, ierīces un cenu katalogu...</div>
         <div v-if="metaError" class="msg mt12">{{ metaError }}</div>
+
+        <div class="formSection">
+          <div class="sectionEyebrow">Izvēlies pieteikuma veidu</div>
+
+          <div class="requestTypeGrid">
+            <button
+              v-for="requestType in requestTypes"
+              :key="requestType.value"
+              type="button"
+              :class="['requestTypeCard', { active: form.request_type === requestType.value }]"
+              @click="selectRequestType(requestType.value)"
+            >
+              <span>{{ requestType.kicker }}</span>
+              <strong>{{ requestType.title }}</strong>
+              <small>{{ requestType.description }}</small>
+            </button>
+          </div>
+        </div>
 
         <div class="formSection">
           <div class="sectionEyebrow">Pamatinformācija</div>
@@ -49,72 +67,32 @@
               </select>
             </label>
           </div>
+
+          <div v-if="form.request_type === 'screen_battery'" class="repairChoice">
+            <div class="label">Remonta veids</div>
+            <div class="repairToggle">
+              <button type="button" :class="['repairButton', { active: form.repair_option === 'screen' }]" @click="form.repair_option = 'screen'">
+                Ekrāna maiņa
+              </button>
+              <button type="button" :class="['repairButton', { active: form.repair_option === 'battery' }]" @click="form.repair_option = 'battery'">
+                Akumulatora maiņa
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="formSection">
           <div class="sectionEyebrow">Problēmas apraksts</div>
 
           <label class="field">
-            <div class="label">Apraksts</div>
+            <div class="label">Problēmas apraksts</div>
             <textarea
               class="control textarea"
               v-model="form.problem_description"
               rows="4"
-              placeholder="Īsi apraksti problēmu"
+              :placeholder="problemPlaceholder"
             ></textarea>
           </label>
-        </div>
-
-        <div class="formSection">
-          <div class="sectionHead">
-            <div>
-              <div class="sectionEyebrow">Pozīcijas</div>
-              <div class="sectionHint">Pievieno pakalpojumu vai detaļu, ko vēlies iekļaut pieteikumā.</div>
-            </div>
-
-            <button class="btn btnSoft btnSmall" type="button" @click="addItem">+ Pievienot pozīciju</button>
-          </div>
-
-          <div v-if="form.items.length === 0" class="emptyHint mt12">
-            Pievieno vismaz vienu pakalpojumu vai detaļu.
-          </div>
-
-          <div class="items">
-            <div class="itemRow" v-for="(item, index) in form.items" :key="index">
-              <select class="control typeControl" v-model="item.item_type" @change="syncItemSelection(item)">
-                <option value="service">Pakalpojums</option>
-                <option value="part">Detaļa</option>
-              </select>
-
-              <select
-                v-if="item.item_type === 'service'"
-                class="control"
-                v-model.number="item.service_id"
-                :disabled="services.length === 0"
-              >
-                <option value="" disabled hidden>Izvēlies pakalpojumu</option>
-                <option v-for="service in services" :key="service.id" :value="service.id">
-                  {{ service.name }} — {{ formatMoney(service.base_price) }}
-                </option>
-              </select>
-
-              <select
-                v-else
-                class="control"
-                v-model.number="item.part_id"
-                :disabled="parts.length === 0"
-              >
-                <option value="" disabled hidden>Izvēlies detaļu</option>
-                <option v-for="part in parts" :key="part.id" :value="part.id">
-                  {{ part.name }} — {{ formatMoney(part.unit_price) }}
-                </option>
-              </select>
-
-              <input class="control qtyControl" v-model.number="item.quantity" type="number" min="1" placeholder="Daudzums" />
-
-              <button class="btnIcon btnDangerSoft" type="button" @click="removeItem(index)" title="Dzēst">×</button>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -132,8 +110,12 @@
             <b>{{ selectedDevice ? formatDeviceLabel(selectedDevice) : 'Nav izvēlēta' }}</b>
           </div>
           <div class="summaryItem">
-            <span>Pozīcijas</span>
-            <b>{{ form.items.length }}</b>
+            <span>Pieteikuma veids</span>
+            <b>{{ selectedRequestType.title }}</b>
+          </div>
+          <div class="summaryItem">
+            <span>Pakalpojums</span>
+            <b>{{ selectedService?.name || 'Tiks precizēts' }}</b>
           </div>
         </div>
 
@@ -146,9 +128,9 @@
           class="btn btnPrimary summaryCta"
           type="button"
           @click="createOrder"
-          :disabled="creating || metaLoading || !form.branch_id || !form.device_id || form.items.length === 0"
+          :disabled="creating || metaLoading || !form.branch_id || !form.device_id || !canSubmitRequest"
         >
-          {{ creating ? 'Veido...' : 'Izveidot pieteikumu' }}
+          {{ creating ? 'Veido...' : 'Nosūtīt pieteikumu' }}
         </button>
 
         <div class="msg mt12" v-if="createError">{{ createError }}</div>
@@ -240,13 +222,29 @@
             <option value="phone">Telefons</option>
             <option value="laptop">Portatīvais dators</option>
             <option value="tablet">Planšete</option>
+            <option value="desktop_pc">Stacionārais dators</option>
+            <option value="pc_component">Datora komponente</option>
             <option value="other">Cits</option>
+          </select>
+        </label>
+
+        <label v-if="deviceForm.type === 'pc_component'" class="field mt12">
+          <div class="label">Komponentes tips</div>
+          <select class="control" v-model="deviceForm.component_type">
+            <option value="CPU">CPU</option>
+            <option value="GPU">GPU</option>
+            <option value="Motherboard">Motherboard</option>
+            <option value="RAM">RAM</option>
+            <option value="SSD/HDD">SSD/HDD</option>
+            <option value="PSU">PSU</option>
+            <option value="Cooling">Cooling</option>
+            <option value="Other">Other</option>
           </select>
         </label>
 
         <div class="grid2 mt12">
           <label class="field">
-            <div class="label">Zīmols</div>
+            <div class="label">{{ deviceForm.type === 'desktop_pc' ? 'Ražotājs' : 'Zīmols' }}</div>
             <AutocompleteInput
               v-model.trim="deviceForm.brand"
               :suggestions="brandSuggestions"
@@ -257,7 +255,7 @@
           </label>
 
           <label class="field">
-            <div class="label">Modelis</div>
+            <div class="label">{{ deviceForm.type === 'desktop_pc' ? 'Modelis / konfigurācijas nosaukums' : 'Modelis' }}</div>
             <AutocompleteInput
               v-model.trim="deviceForm.model"
               :suggestions="modelSuggestions"
@@ -266,6 +264,16 @@
             />
           </label>
         </div>
+
+        <label v-if="deviceForm.type === 'desktop_pc'" class="field mt12">
+          <div class="label">Papildu informācija / specifikācija</div>
+          <textarea class="control textarea smallTextarea" v-model.trim="deviceForm.specs" rows="3"></textarea>
+        </label>
+
+        <label class="field mt12">
+          <div class="label">Sērijas numurs</div>
+          <input class="control" v-model.trim="deviceForm.serial_number" type="text" placeholder="Nav obligāts" />
+        </label>
 
         <div v-if="deviceErrors.length > 0" class="msg mt12">
           <div v-for="(error, index) in deviceErrors" :key="index">{{ error }}</div>
@@ -291,6 +299,7 @@ import AccountMenu from './AccountMenu.vue'
 import AutocompleteInput from './AutocompleteInput.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 import { fetchDeviceBrands, fetchDeviceModels } from '../deviceCatalog'
+import { formatDevice } from '../deviceFormat'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 const ADD_DEVICE_OPTION = '__add_device__'
@@ -335,15 +344,41 @@ const deviceSelectValue = computed({
 const form = reactive({
   branch_id: null,
   device_id: null,
+  request_type: 'general',
+  repair_option: 'screen',
   problem_description: '',
   items: [],
 })
 
 const deviceForm = reactive({
   type: 'phone',
+  component_type: 'CPU',
   brand: '',
   model: '',
+  specs: '',
+  serial_number: '',
 })
+
+const requestTypes = [
+  {
+    value: 'general',
+    kicker: 'Universāli',
+    title: 'Vispārīgs servisa pieteikums',
+    description: 'Apraksti jebkuru ierīces problēmu.',
+  },
+  {
+    value: 'screen_battery',
+    kicker: 'Populārs remonts',
+    title: 'Ekrāna vai akumulatora maiņa',
+    description: 'Ātra pieteikšana biežākajiem remontiem.',
+  },
+  {
+    value: 'quick_diagnostics',
+    kicker: 'Ātri',
+    title: 'Ātrā diagnostika',
+    description: 'Pārbaude un servisa rekomendācija.',
+  },
+]
 
 const OFFICE_TO_BRANCH_ID = {
   'riga-centrs': 1,
@@ -356,13 +391,23 @@ const OFFICE_TO_BRANCH_ID = {
   imanta: 2,
 }
 
-const draftTotal = computed(() => form.items.reduce((sum, item) => {
-  const unitPrice = item.item_type === 'service'
-    ? Number(services.value.find(service => service.id === Number(item.service_id))?.base_price || 0)
-    : Number(parts.value.find(part => part.id === Number(item.part_id))?.unit_price || 0)
+const selectedRequestType = computed(() => (
+  requestTypes.find(type => type.value === form.request_type) ?? requestTypes[0]
+))
 
-  return sum + (unitPrice * Number(item.quantity || 0))
-}, 0))
+const selectedService = computed(() => findServiceForRequest())
+
+const draftTotal = computed(() => Number(selectedService.value?.base_price || 0))
+
+const problemPlaceholder = computed(() => {
+  if (form.request_type === 'quick_diagnostics') return 'Pievieno komentāru ātrajai diagnostikai, ja nepieciešams.'
+  if (form.request_type === 'screen_battery') return 'Pievieno komentāru par ekrāna vai akumulatora maiņu.'
+  return 'Īsi apraksti problēmu'
+})
+
+const canSubmitRequest = computed(() => (
+  form.request_type !== 'screen_battery' || ['screen', 'battery'].includes(form.repair_option)
+))
 
 const selectedBranch = computed(() => (
   branches.value.find(branch => branch.id === Number(form.branch_id)) ?? null
@@ -386,15 +431,33 @@ function formatDate(value) {
 }
 
 function formatDeviceLabel(device) {
-  if (!device) return '—'
-
-  const parts = [device.brand, device.model].filter(Boolean)
-  const title = parts.join(' ')
-  return title ? `${title} (${device.type})` : `Ierīce #${device.id}`
+  return formatDevice(device)
 }
 
 function orderDeviceLabel(device) {
   return device ? formatDeviceLabel(device) : '—'
+}
+
+function findServiceForRequest() {
+  const name = form.request_type === 'quick_diagnostics'
+    ? 'Ātrā diagnostika'
+    : form.request_type === 'screen_battery'
+      ? (form.repair_option === 'screen' ? 'Ekrāna maiņa' : 'Akumulatora maiņa')
+      : 'Diagnostika'
+
+  return services.value.find(service => service.name === name)
+    ?? services.value.find(service => service.name?.toLowerCase().includes(name.toLowerCase()))
+    ?? null
+}
+
+function selectRequestType(type) {
+  form.request_type = type
+
+  if (type !== 'screen_battery') {
+    form.repair_option = null
+  } else if (!form.repair_option) {
+    form.repair_option = 'screen'
+  }
 }
 
 function defaultItemType() {
@@ -523,8 +586,11 @@ function applyDraft() {
 
 function resetDeviceForm() {
   deviceForm.type = 'phone'
+  deviceForm.component_type = 'CPU'
   deviceForm.brand = ''
   deviceForm.model = ''
+  deviceForm.specs = ''
+  deviceForm.serial_number = ''
   deviceErrors.value = []
   modelSuggestions.value = []
 }
@@ -586,7 +652,6 @@ async function loadMeta() {
 
     syncSelectedBranch()
     await loadDevices()
-    ensureItems()
   } catch (error) {
     branches.value = []
     services.value = []
@@ -643,8 +708,8 @@ async function createOrder() {
       throw new Error('Lūdzu, izvēlies ierīci.')
     }
 
-    if (form.items.length === 0) {
-      throw new Error('Pievieno vismaz vienu pozīciju.')
+    if (!canSubmitRequest.value) {
+      throw new Error('Lūdzu, izvēlies remonta veidu.')
     }
 
     const response = await authFetch('/api/my/orders', {
@@ -652,13 +717,9 @@ async function createOrder() {
       json: {
         branch_id: form.branch_id,
         device_id: form.device_id,
+        request_type: form.request_type,
+        repair_option: form.request_type === 'screen_battery' ? form.repair_option : null,
         problem_description: form.problem_description,
-        items: form.items.map(item => ({
-          item_type: item.item_type,
-          service_id: item.item_type === 'service' ? (item.service_id || null) : null,
-          part_id: item.item_type === 'part' ? (item.part_id || null) : null,
-          quantity: item.quantity,
-        })),
       },
     })
 
@@ -674,8 +735,7 @@ async function createOrder() {
     const created = await response.json()
     localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
     createSuccess.value = `Izveidots: ${created.order_number}`
-    form.items = []
-    ensureItems()
+    form.problem_description = ''
     await loadOrders()
   } catch (error) {
     createError.value = (error?.message || 'Kļūda').slice(0, 260)
@@ -693,8 +753,11 @@ async function saveDevice() {
       method: 'POST',
       json: {
         type: deviceForm.type,
+        component_type: deviceForm.type === 'pc_component' ? deviceForm.component_type : null,
         brand: deviceForm.brand,
         model: deviceForm.model,
+        specs: deviceForm.type === 'desktop_pc' ? deviceForm.specs : null,
+        serial_number: deviceForm.serial_number || null,
       },
     })
 
@@ -755,7 +818,6 @@ onMounted(async () => {
   await initAuth().catch(() => null)
   await loadMeta()
   applyDraft()
-  ensureItems()
   await loadOrders()
 })
 </script>
@@ -1157,6 +1219,54 @@ onMounted(async () => {
   line-height: 1.5;
 }
 
+.requestTypeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.requestTypeCard {
+  display: grid;
+  gap: 7px;
+  min-height: 138px;
+  padding: 16px;
+  text-align: left;
+  color: #071833;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background-color 160ms ease;
+}
+
+.requestTypeCard:hover,
+.requestTypeCard.active {
+  background: #f5f9ff;
+  border-color: #93c5fd;
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+.requestTypeCard span {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.requestTypeCard strong {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.requestTypeCard small {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .grid2 {
   gap: 16px;
 }
@@ -1188,6 +1298,41 @@ onMounted(async () => {
 .textarea {
   min-height: 116px;
   line-height: 1.5;
+}
+
+.smallTextarea {
+  min-height: 90px;
+}
+
+.repairChoice {
+  margin-top: 16px;
+}
+
+.repairToggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.repairButton {
+  min-height: 42px;
+  padding: 10px 14px;
+  color: #071833;
+  background: #fff;
+  border: 1px solid #d8e0eb;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 800;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.repairButton:hover,
+.repairButton.active {
+  color: #1d4ed8;
+  background: #eef5ff;
+  border-color: #93c5fd;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
 }
 
 .items {
@@ -1452,6 +1597,10 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
+  .requestTypeGrid {
+    grid-template-columns: 1fr;
+  }
+
   .summaryCard {
     position: static;
   }
@@ -1504,4 +1653,3 @@ onMounted(async () => {
   }
 }
 </style>
-

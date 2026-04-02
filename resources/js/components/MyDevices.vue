@@ -2,34 +2,50 @@
   <div class="page">
     <div class="topbar">
       <div class="titleBlock">
-        <h1 class="h1">My Devices</h1>
-        <div class="subtitle">Manage devices before creating an order</div>
+        <h1 class="h1">Manas ierīces</h1>
+        <div class="subtitle">Pārvaldi ierīces pirms pieteikuma izveides</div>
       </div>
 
       <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Home</RouterLink>
+        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
         <AccountMenu />
       </div>
     </div>
 
     <div class="card">
       <div class="cardHead">
-        <div class="cardTitle">Add device</div>
+        <div class="cardTitle">Pievienot ierīci</div>
       </div>
 
       <div class="grid2">
         <label class="field">
-          <div class="label">Type</div>
+          <div class="label">Tips</div>
           <select class="control" v-model="form.type">
-            <option value="phone">phone</option>
-            <option value="laptop">laptop</option>
-            <option value="tablet">tablet</option>
-            <option value="other">other</option>
+            <option value="phone">Telefons</option>
+            <option value="laptop">Portatīvais dators</option>
+            <option value="tablet">Planšete</option>
+            <option value="desktop_pc">Stacionārais dators</option>
+            <option value="pc_component">Datora komponente</option>
+            <option value="other">Cits</option>
+          </select>
+        </label>
+
+        <label v-if="form.type === 'pc_component'" class="field">
+          <div class="label">Komponentes tips</div>
+          <select class="control" v-model="form.component_type">
+            <option value="CPU">CPU</option>
+            <option value="GPU">GPU</option>
+            <option value="Motherboard">Motherboard</option>
+            <option value="RAM">RAM</option>
+            <option value="SSD/HDD">SSD/HDD</option>
+            <option value="PSU">PSU</option>
+            <option value="Cooling">Cooling</option>
+            <option value="Other">Cits</option>
           </select>
         </label>
 
         <label class="field">
-          <div class="label">Brand</div>
+          <div class="label">{{ form.type === 'desktop_pc' ? 'Ražotājs' : 'Zīmols' }}</div>
           <AutocompleteInput
             v-model.trim="form.brand"
             :suggestions="brandSuggestions"
@@ -42,7 +58,7 @@
 
       <div class="mt12">
         <label class="field">
-          <div class="label">Model</div>
+          <div class="label">{{ form.type === 'desktop_pc' ? 'Modelis / konfigurācijas nosaukums' : 'Modelis' }}</div>
           <AutocompleteInput
             v-model.trim="form.model"
             placeholder="iPhone 12..."
@@ -52,9 +68,19 @@
         </label>
       </div>
 
+      <label v-if="form.type === 'desktop_pc'" class="field mt12">
+        <div class="label">Papildu informācija / specifikācija</div>
+        <textarea class="control textarea" v-model.trim="form.specs" rows="3" placeholder="CPU, RAM, GPU, disks..."></textarea>
+      </label>
+
+      <label class="field mt12">
+        <div class="label">Sērijas numurs</div>
+        <input class="control" v-model.trim="form.serial_number" type="text" placeholder="Nav obligāts" />
+      </label>
+
       <div class="row mt16">
         <button class="btn btnPrimary" type="button" @click="createDevice" :disabled="creating">
-          {{ creating ? 'Saving...' : 'Add device' }}
+          {{ creating ? 'Saglabā...' : 'Pievienot ierīci' }}
         </button>
 
         <div class="msg" v-if="createError">{{ createError }}</div>
@@ -63,12 +89,12 @@
     </div>
 
     <div class="sectionHeader">
-      <div class="sectionTitle">My devices</div>
-      <div class="muted">Total: {{ devices.length }}</div>
+      <div class="sectionTitle">Manas ierīces</div>
+      <div class="muted">Kopā: {{ devices.length }}</div>
     </div>
 
     <div v-if="listLoading" class="card">
-      <div class="muted">Loading...</div>
+      <div class="muted">Ielādējam...</div>
     </div>
 
     <div v-else>
@@ -77,7 +103,7 @@
       </div>
 
       <div v-else-if="devices.length === 0" class="card">
-        <div class="muted">No devices yet. Add one to create an order.</div>
+        <div class="muted">Ierīču vēl nav. Pievieno ierīci, lai izveidotu pieteikumu.</div>
       </div>
 
       <div class="card deviceCard" v-for="device in devices" :key="device.id">
@@ -87,7 +113,7 @@
           </div>
 
           <button class="btn btnDanger" type="button" @click="deleteDevice(device)" :disabled="deletingId === device.id">
-            {{ deletingId === device.id ? 'Deleting...' : 'Delete' }}
+            {{ deletingId === device.id ? 'Dzēš...' : 'Dzēst' }}
           </button>
         </div>
       </div>
@@ -102,6 +128,7 @@ import AccountMenu from './AccountMenu.vue'
 import AutocompleteInput from './AutocompleteInput.vue'
 import { authFetch, extractErrorMessage, initAuth } from '../auth'
 import { fetchDeviceBrands, fetchDeviceModels } from '../deviceCatalog'
+import { formatDevice } from '../deviceFormat'
 
 const router = useRouter()
 
@@ -119,21 +146,25 @@ const modelSuggestions = ref([])
 
 const form = reactive({
   type: 'phone',
+  component_type: 'CPU',
   brand: '',
   model: '',
+  specs: '',
+  serial_number: '',
 })
 
 function resetForm() {
   form.type = 'phone'
+  form.component_type = 'CPU'
   form.brand = ''
   form.model = ''
+  form.specs = ''
+  form.serial_number = ''
   modelSuggestions.value = []
 }
 
 function formatDeviceLabel(device) {
-  const parts = [device.brand, device.model].filter(Boolean)
-  const title = parts.join(' ')
-  return title ? `${title} (${device.type})` : `Device #${device.id} (${device.type})`
+  return formatDevice(device)
 }
 
 async function loadDevices() {
@@ -149,13 +180,13 @@ async function loadDevices() {
         return
       }
 
-      throw new Error(await extractErrorMessage(res, 'Unable to load devices.'))
+      throw new Error(await extractErrorMessage(res, 'Neizdevās ielādēt ierīces.'))
     }
 
     devices.value = await res.json()
   } catch (e) {
     devices.value = []
-    listError.value = (e?.message || 'Unable to load devices.').slice(0, 260)
+    listError.value = (e?.message || 'Neizdevās ielādēt ierīces.').slice(0, 260)
   } finally {
     listLoading.value = false
   }
@@ -171,8 +202,11 @@ async function createDevice() {
       method: 'POST',
       json: {
         type: form.type,
+        component_type: form.type === 'pc_component' ? form.component_type : null,
         brand: form.brand || null,
         model: form.model || null,
+        specs: form.type === 'desktop_pc' ? form.specs : null,
+        serial_number: form.serial_number || null,
       },
     })
 
@@ -182,14 +216,14 @@ async function createDevice() {
         return
       }
 
-      throw new Error(await extractErrorMessage(res, 'Unable to add device.'))
+      throw new Error(await extractErrorMessage(res, 'Neizdevās pievienot ierīci.'))
     }
 
     resetForm()
-    createSuccess.value = 'Device added.'
+    createSuccess.value = 'Ierīce pievienota.'
     await loadDevices()
   } catch (e) {
-    createError.value = (e?.message || 'Unable to add device.').slice(0, 260)
+    createError.value = (e?.message || 'Neizdevās pievienot ierīci.').slice(0, 260)
   } finally {
     creating.value = false
   }
@@ -211,12 +245,12 @@ async function deleteDevice(device) {
         return
       }
 
-      throw new Error(await extractErrorMessage(res, 'Unable to delete device.'))
+      throw new Error(await extractErrorMessage(res, 'Neizdevās dzēst ierīci.'))
     }
 
     await loadDevices()
   } catch (e) {
-    createError.value = (e?.message || 'Unable to delete device.').slice(0, 260)
+    createError.value = (e?.message || 'Neizdevās dzēst ierīci.').slice(0, 260)
   } finally {
     deletingId.value = null
   }
@@ -338,6 +372,12 @@ onMounted(async () => {
 .control:focus {
   border-color: rgba(37, 99, 235, 0.6);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.5;
 }
 
 .grid2 {

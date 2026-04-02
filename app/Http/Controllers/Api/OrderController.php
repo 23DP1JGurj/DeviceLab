@@ -54,8 +54,10 @@ class OrderController extends Controller
         $validator = Validator::make($request->all(), [
             'branch_id' => ['required', 'integer', 'exists:branches,id'],
             'device_id' => ['required', 'integer', 'exists:devices,id'],
+            'request_type' => ['nullable', 'string', 'in:general,screen_battery,quick_diagnostics'],
+            'repair_option' => ['nullable', 'string', 'in:screen,battery'],
             'problem_description' => ['nullable', 'string'],
-            'items' => ['required', 'array', 'min:1'],
+            'items' => ['nullable', 'array', 'min:1'],
             'items.*.item_type' => ['required', 'in:service,part'],
             'items.*.service_id' => ['nullable', 'integer', 'exists:services,id'],
             'items.*.part_id' => ['nullable', 'integer', 'exists:parts,id'],
@@ -63,17 +65,21 @@ class OrderController extends Controller
         ]);
 
         $validator->after(function ($validator) use ($request) {
+            if (! $request->filled('items') && $request->input('request_type') === 'screen_battery' && ! $request->filled('repair_option')) {
+                $validator->errors()->add('repair_option', 'Izvēlies remonta veidu.');
+            }
+
             foreach ((array) $request->input('items', []) as $index => $item) {
                 $itemType = $item['item_type'] ?? null;
                 $serviceId = $item['service_id'] ?? null;
                 $partId = $item['part_id'] ?? null;
 
                 if ($itemType === 'service' && ! $serviceId) {
-                    $validator->errors()->add("items.$index.service_id", 'Choose a service for this item.');
+                    $validator->errors()->add("items.$index.service_id", 'Izvēlies pakalpojumu šai pozīcijai.');
                 }
 
                 if ($itemType === 'part' && ! $partId) {
-                    $validator->errors()->add("items.$index.part_id", 'Choose a part for this item.');
+                    $validator->errors()->add("items.$index.part_id", 'Izvēlies detaļu šai pozīcijai.');
                 }
             }
         });
@@ -83,18 +89,22 @@ class OrderController extends Controller
         $this->ensureDeviceCanBeUsed($user, (int) $data['device_id']);
 
         return DB::transaction(function () use ($data, $user) {
+            $items = $this->buildClientRequestItems($data);
+            $problemDescription = $this->resolveProblemDescription($data);
+
             $order = Order::create([
                 'order_number' => $this->generateOrderNumber(),
                 'user_id' => $user->id,
                 'branch_id' => $data['branch_id'],
                 'device_id' => $data['device_id'],
                 'status' => 'new',
-                'problem_description' => $data['problem_description'] ?? null,
+                'request_type' => $data['request_type'] ?? 'general',
+                'problem_description' => $problemDescription,
             ]);
 
             $total = 0;
 
-            foreach ($data['items'] as $item) {
+            foreach ($items as $item) {
                 if ($item['item_type'] === 'service') {
                     $service = Service::findOrFail($item['service_id']);
                     $unitPrice = (float) $service->base_price;
@@ -191,7 +201,7 @@ class OrderController extends Controller
             'user:id,name,email,phone',
             'assignedStaff:id,name,email,phone,specialization',
             'branch:id,name,address',
-            'device:id,type,brand,model,serial_number',
+            'device:id,type,component_type,brand,model,specs,serial_number',
             'items.service:id,name,base_price',
             'items.part:id,name,unit_price',
         ]);
@@ -222,10 +232,66 @@ class OrderController extends Controller
             'user:id,name,email,phone',
             'assignedStaff:id,name,email,phone,specialization',
             'branch:id,name,address',
-            'device:id,type,brand,model,serial_number',
+            'device:id,type,component_type,brand,model,specs,serial_number',
             'items.service:id,name,base_price',
             'items.part:id,name,unit_price',
         ]);
+    }
+
+    private function buildClientRequestItems(array $data): array
+    {
+        $requestType = $data['request_type'] ?? 'general';
+        $serviceName = match ($requestType) {
+            'quick_diagnostics' => 'Ātrā diagnostika',
+            'screen_battery' => ($data['repair_option'] ?? null) === 'screen'
+                ? 'Ekrāna maiņa'
+                : 'Akumulatora maiņa',
+            default => 'Diagnostika',
+        };
+
+        $service = $this->findServiceByName($serviceName);
+
+        return [[
+            'item_type' => 'service',
+            'service_id' => $service->id,
+            'part_id' => null,
+            'quantity' => 1,
+        ]];
+    }
+
+    private function resolveProblemDescription(array $data): ?string
+    {
+        $comment = trim((string) ($data['problem_description'] ?? ''));
+        $prefix = match ($data['request_type'] ?? 'general') {
+            'quick_diagnostics' => 'Klients pieteica ātro diagnostiku.',
+            'screen_battery' => ($data['repair_option'] ?? null) === 'screen'
+                ? 'Klients pieteica ekrāna maiņu.'
+                : 'Klients pieteica akumulatora maiņu.',
+            default => '',
+        };
+
+        if ($prefix === '') {
+            return $comment !== '' ? $comment : null;
+        }
+
+        return $comment !== '' ? $prefix . "\n" . $comment : $prefix;
+    }
+
+    private function findServiceByName(string $name): Service
+    {
+        $service = Service::query()
+            ->where('is_active', 1)
+            ->where('name', $name)
+            ->first();
+
+        if ($service) {
+            return $service;
+        }
+
+        return Service::query()
+            ->where('is_active', 1)
+            ->where('name', 'like', '%' . $name . '%')
+            ->firstOrFail();
     }
 
     private function ensureDeviceCanBeUsed(User $user, int $deviceId): void
@@ -241,7 +307,7 @@ class OrderController extends Controller
 
         if (! $belongsToUser) {
             throw ValidationException::withMessages([
-                'device_id' => ['Selected device does not belong to the current user.'],
+                'device_id' => ['Izvēlētā ierīce nepieder pašreizējam klientam.'],
             ]);
         }
     }

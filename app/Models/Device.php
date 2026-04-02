@@ -11,8 +11,10 @@ class Device extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'component_type',
         'brand',
         'model',
+        'specs',
         'serial_number',
         'warranty_until',
     ];
