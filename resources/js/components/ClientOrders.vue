@@ -16,7 +16,7 @@
       <section class="card formCard">
         <div class="cardHead">
           <div>
-            <div class="cardTitle">Izveidot jaunu pieteikumu</div>
+            <div class="cardTitle">Jauns pieteikums</div>
             <div class="cardSubtitle">Izvēlies pieteikuma veidu, filiāli un ierīci. Servisa pozīcijas tiks sagatavotas automātiski.</div>
           </div>
         </div>
@@ -25,7 +25,12 @@
         <div v-if="metaError" class="msg mt12">{{ metaError }}</div>
 
         <div class="formSection">
-          <div class="sectionEyebrow">Izvēlies pieteikuma veidu</div>
+          <div class="sectionHeaderLine">
+            <div>
+              <div class="sectionEyebrow">Izvēlies pieteikuma veidu</div>
+              <div class="sectionHint">Ātrākai noformēšanai izvēlies tuvāko servisa scenāriju.</div>
+            </div>
+          </div>
 
           <div class="requestTypeGrid">
             <button
@@ -43,7 +48,12 @@
         </div>
 
         <div class="formSection">
-          <div class="sectionEyebrow">Pamatinformācija</div>
+          <div class="sectionHeaderLine">
+            <div>
+              <div class="sectionEyebrow">Pamatinformācija</div>
+              <div class="sectionHint">Norādi filiāli un ierīci, kuru nodosi servisā.</div>
+            </div>
+          </div>
 
           <div class="grid2">
             <label class="field">
@@ -82,7 +92,12 @@
         </div>
 
         <div class="formSection">
-          <div class="sectionEyebrow">Problēmas apraksts</div>
+          <div class="sectionHeaderLine">
+            <div>
+              <div class="sectionEyebrow">Problēmas apraksts</div>
+              <div class="sectionHint">Īsi apraksti simptomus, kad problēma sākās un kas jau ir izmēģināts.</div>
+            </div>
+          </div>
 
           <label class="field">
             <div class="label">Problēmas apraksts</div>
@@ -93,6 +108,63 @@
               :placeholder="problemPlaceholder"
             ></textarea>
           </label>
+        </div>
+
+        <div class="formSection">
+          <div class="sectionHeaderLine">
+            <div>
+              <div class="sectionEyebrow">Pozīcijas</div>
+              <div class="sectionHint">Klientam pozīcijas tiek sagatavotas automātiski pēc izvēlētā pieteikuma veida.</div>
+            </div>
+            <button class="btn btnSoft btnSmall" type="button" disabled title="Pozīcijas tiek pievienotas automātiski">
+              + Pievienot pozīciju
+            </button>
+          </div>
+
+          <div class="lineItems">
+            <div class="lineItemCard">
+              <div class="lineMain">
+                <span class="typePill">Pakalpojums</span>
+                <div class="lineName">
+                  <strong>{{ selectedService?.name || 'Serviss tiks precizēts' }}</strong>
+                  <small>{{ selectedRequestType.title }}</small>
+                </div>
+              </div>
+
+              <div class="qtyBox" aria-label="Daudzums">
+                <button type="button" disabled>−</button>
+                <span>1</span>
+                <button type="button" disabled>+</button>
+              </div>
+
+              <div class="priceBox">
+                <span>Cena</span>
+                <strong>{{ formatMoney(draftTotal) }}</strong>
+              </div>
+
+              <div class="priceBox lineTotalBox">
+                <span>Kopā</span>
+                <strong>{{ formatMoney(draftTotal) }}</strong>
+              </div>
+            </div>
+
+            <button class="detailsToggle" type="button" @click="requestDetailsOpen = !requestDetailsOpen">
+              {{ requestDetailsOpen ? 'Paslēpt detalizēti' : 'Detalizēti' }}
+            </button>
+
+            <div v-if="requestDetailsOpen" class="detailsPanel">
+              <label class="field">
+                <div class="label">Papildu piezīmes</div>
+                <input class="control" type="text" disabled placeholder="Tiks izmantots nākamajā posmā" />
+              </label>
+              <label class="field">
+                <div class="label">Kvalitāte</div>
+                <select class="control" disabled>
+                  <option>Standarta serviss</option>
+                </select>
+              </label>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -117,6 +189,10 @@
             <span>Pakalpojums</span>
             <b>{{ selectedService?.name || 'Tiks precizēts' }}</b>
           </div>
+          <div class="summaryItem">
+            <span>Pozīciju skaits</span>
+            <b>{{ positionCount }}</b>
+          </div>
         </div>
 
         <div class="summaryTotal">
@@ -130,8 +206,10 @@
           @click="createOrder"
           :disabled="creating || metaLoading || !form.branch_id || !form.device_id || !canSubmitRequest"
         >
-          {{ creating ? 'Veido...' : 'Nosūtīt pieteikumu' }}
+          {{ creating ? 'Veido...' : 'Izveidot pieteikumu' }}
         </button>
+
+        <div class="summaryNote">Gala summa var mainīties pēc diagnostikas.</div>
 
         <div class="msg mt12" v-if="createError">{{ createError }}</div>
         <div class="msg ok mt12" v-else-if="createSuccess">{{ createSuccess }}</div>
@@ -187,16 +265,22 @@
           </div>
 
           <div class="itemsBlock">
-            <div class="subTitle">Pozīcijas</div>
-            <div class="orderItems">
-              <div class="orderItem" v-for="item in order.items" :key="item.id">
+            <div class="itemsBlockHead">
+              <div class="subTitle">Pozīcijas</div>
+              <button
+                v-if="hasMoreOrderItems(order)"
+                class="linkButton"
+                type="button"
+                @click="toggleOrderItems(order.id)"
+              >
+                {{ isOrderExpanded(order.id) ? 'Rādīt mazāk' : 'Skatīt vairāk' }}
+              </button>
+            </div>
+            <div class="orderItems compact">
+              <div class="orderItem" v-for="item in visibleOrderItems(order)" :key="item.id">
                 <div>
                   <span class="itemKind">{{ item.item_type === 'service' ? 'pakalpojums' : 'detaļa' }}</span>
-                  <b>
-                    {{ item.item_type === 'service'
-                      ? (item.service?.name || ('#' + item.service_id))
-                      : (item.part?.name || ('#' + item.part_id)) }}
-                  </b>
+                  <b>{{ itemName(item) }}</b>
                 </div>
                 <span>{{ item.quantity }} × {{ formatMoney(item.unit_price) }}</span>
                 <strong>{{ formatMoney(item.line_total) }}</strong>
@@ -321,6 +405,8 @@ const metaError = ref('')
 const creating = ref(false)
 const createError = ref('')
 const createSuccess = ref('')
+const requestDetailsOpen = ref(false)
+const expandedOrderIds = ref([])
 
 const isDeviceModalOpen = ref(false)
 const deviceSaving = ref(false)
@@ -399,6 +485,8 @@ const selectedService = computed(() => findServiceForRequest())
 
 const draftTotal = computed(() => Number(selectedService.value?.base_price || 0))
 
+const positionCount = computed(() => (selectedService.value ? 1 : 0))
+
 const problemPlaceholder = computed(() => {
   if (form.request_type === 'quick_diagnostics') return 'Pievieno komentāru ātrajai diagnostikai, ja nepieciešams.'
   if (form.request_type === 'screen_battery') return 'Pievieno komentāru par ekrāna vai akumulatora maiņu.'
@@ -420,6 +508,31 @@ const selectedDevice = computed(() => (
 function formatMoney(value) {
   const amount = Number(value || 0)
   return `${amount.toFixed(2)} €`
+}
+
+function itemName(item) {
+  return item.item_type === 'service'
+    ? (item.service?.name || `#${item.service_id}`)
+    : (item.part?.name || `#${item.part_id}`)
+}
+
+function isOrderExpanded(orderId) {
+  return expandedOrderIds.value.includes(orderId)
+}
+
+function toggleOrderItems(orderId) {
+  expandedOrderIds.value = isOrderExpanded(orderId)
+    ? expandedOrderIds.value.filter(id => id !== orderId)
+    : [...expandedOrderIds.value, orderId]
+}
+
+function visibleOrderItems(order) {
+  const items = order.items ?? []
+  return isOrderExpanded(order.id) ? items : items.slice(0, 3)
+}
+
+function hasMoreOrderItems(order) {
+  return (order.items ?? []).length > 3
 }
 
 function formatDate(value) {
@@ -1650,6 +1763,343 @@ onMounted(async () => {
   .orderItem span,
   .orderItem strong {
     white-space: normal;
+  }
+}
+
+/* Modern SaaS dashboard polish */
+.page {
+  max-width: 1220px;
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(47, 124, 255, 0.10), transparent 62%),
+    linear-gradient(180deg, #f6f8fc 0%, #f8fafc 100%);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.titleBlock {
+  min-width: 0;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dashboardGrid {
+  grid-template-columns: minmax(0, 1.9fr) minmax(300px, 0.8fr);
+  gap: 22px;
+}
+
+.card,
+.summaryCard,
+.modalCard {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+.formCard {
+  padding: 26px;
+}
+
+.cardHead {
+  padding-bottom: 18px;
+  margin-bottom: 0;
+  border-bottom: 1px solid #e8edf5;
+}
+
+.cardTitle {
+  font-size: 22px;
+}
+
+.formSection {
+  padding-top: 22px;
+  margin-top: 0;
+}
+
+.sectionHeaderLine {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  min-width: 0;
+}
+
+.sectionHeaderLine::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  margin-top: 10px;
+  background: linear-gradient(90deg, #e2e8f0, transparent);
+}
+
+.sectionHeaderLine > * {
+  min-width: 0;
+}
+
+.sectionEyebrow {
+  font-size: 15px;
+}
+
+.requestTypeGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.requestTypeCard {
+  min-height: 132px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.requestTypeCard.active {
+  border-color: #2f7cff;
+  box-shadow: 0 18px 36px rgba(10, 102, 255, 0.15);
+}
+
+.control {
+  min-height: 52px;
+  border-radius: 15px;
+  font-size: 15px;
+}
+
+.textarea {
+  min-height: 112px;
+}
+
+.lineItems {
+  display: grid;
+  gap: 10px;
+}
+
+.lineItemCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px 112px 112px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.lineItemCard:hover {
+  background: #fbfdff;
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.lineMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.typePill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  color: #0a66ff;
+  background: #eaf2ff;
+  border: 1px solid #cfe1ff;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.lineName {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lineName strong,
+.lineName small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineName small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.qtyBox {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  min-height: 42px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #d8e0eb;
+  border-radius: 14px;
+}
+
+.qtyBox button {
+  height: 100%;
+  color: #94a3b8;
+  background: transparent;
+  border: 0;
+  font-weight: 900;
+}
+
+.qtyBox span {
+  text-align: center;
+  font-weight: 900;
+}
+
+.priceBox {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  text-align: right;
+}
+
+.priceBox span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.priceBox strong {
+  color: #071833;
+  font-size: 15px;
+}
+
+.lineTotalBox strong {
+  color: #0a66ff;
+}
+
+.detailsToggle,
+.linkButton {
+  width: fit-content;
+  padding: 0;
+  color: #0a66ff;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.detailsToggle:hover,
+.linkButton:hover {
+  color: #064fc7;
+  text-decoration: underline;
+}
+
+.detailsPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.35fr);
+  gap: 12px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+}
+
+.summaryCard {
+  top: 18px;
+  border-color: rgba(10, 102, 255, 0.12);
+}
+
+.summaryTotal {
+  background: linear-gradient(180deg, #eaf2ff 0%, #f5f9ff 100%);
+  border-color: #cfe1ff;
+}
+
+.summaryNote {
+  margin-top: 12px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.summaryCta {
+  background: linear-gradient(180deg, #2f7cff 0%, #0a66ff 100%);
+  border-color: #0a66ff;
+}
+
+.orderCard {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.itemsBlockHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.orderItems.compact {
+  gap: 7px;
+}
+
+.orderItems.compact .orderItem {
+  background: #fff;
+}
+
+.btnGhost {
+  min-height: 46px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 980px) {
+  .dashboardGrid,
+  .requestTypeGrid,
+  .detailsPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryCard {
+    position: static;
+  }
+
+  .lineItemCard {
+    grid-template-columns: 1fr 118px 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .topActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .lineItemCard {
+    grid-template-columns: 1fr;
+  }
+
+  .lineMain {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .priceBox {
+    text-align: left;
+  }
+
+  .sectionHeaderLine {
+    flex-direction: column;
+  }
+
+  .sectionHeaderLine::after {
+    width: 100%;
+    margin-top: 0;
   }
 }
 </style>
