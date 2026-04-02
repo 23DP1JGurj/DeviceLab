@@ -28,6 +28,8 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'specialization',
+        'branch_id',
     ];
 
     protected $hidden = [
@@ -51,6 +53,11 @@ class User extends Authenticatable
     public function devices(): HasMany
     {
         return $this->hasMany(Device::class);
+    }
+
+    public function assignedOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'assigned_staff_id');
     }
 
     public function hasRole(string $role): bool

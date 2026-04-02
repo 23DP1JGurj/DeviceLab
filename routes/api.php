@@ -73,8 +73,11 @@ Route::prefix('client')
 Route::prefix('staff')
     ->middleware(array_merge($sessionMiddleware, ['auth', 'role:staff,admin']))
     ->group(function () {
+        Route::get('/orders/unassigned', [OrderController::class, 'unassigned']);
+        Route::get('/orders/my', [OrderController::class, 'assignedToMe']);
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::post('/orders/{order}/claim', [OrderController::class, 'claim']);
         Route::patch('/orders/{order}', [OrderController::class, 'update']);
         Route::delete('/orders/{order}', [OrderController::class, 'destroy']);
     });

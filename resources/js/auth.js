@@ -48,7 +48,7 @@ export function sanitizeRedirectPath(value) {
 }
 
 export function defaultRouteForUser(user) {
-  return hasAnyRole(user, STAFF_ROLES) ? '/staff/orders' : '/orders'
+  return hasAnyRole(user, STAFF_ROLES) ? '/staff/orders/new' : '/orders'
 }
 
 export function resolveRedirectPath(user, redirect) {

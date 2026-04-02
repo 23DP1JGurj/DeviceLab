@@ -198,6 +198,9 @@
           <div class="chips">
             <span class="chip">Filiāle: {{ order.branch?.name || order.branch_id }}</span>
             <span class="chip">Ierīce: {{ orderDeviceLabel(order.device) }}</span>
+            <span class="chip" :class="order.assigned_staff ? 'chipAssigned' : 'chipUnassigned'">
+              Darbinieks: {{ order.assigned_staff?.name || 'nav piešķirts' }}
+            </span>
             <span class="chip">Izveidots: {{ formatDate(order.created_at) }}</span>
           </div>
 
@@ -1379,6 +1382,18 @@ onMounted(async () => {
   border-color: #dbe4ef;
   color: #334155;
   font-weight: 600;
+}
+
+.chipAssigned {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.chipUnassigned {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
 }
 
 .itemsBlock {

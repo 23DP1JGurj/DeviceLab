@@ -5,6 +5,8 @@ import Login from '../components/Login.vue'
 import MyDevices from '../components/MyDevices.vue'
 import Profile from '../components/Profile.vue'
 import Register from '../components/Register.vue'
+import StaffMyOrders from '../components/StaffMyOrders.vue'
+import StaffNewOrders from '../components/StaffNewOrders.vue'
 import StaffOrders from '../components/StaffOrders.vue'
 import {
   CLIENT_ROLES,
@@ -22,6 +24,8 @@ const routes = [
   { path: '/orders', component: ClientOrders, meta: { requiresAuth: true, roles: CLIENT_ROLES } },
   { path: '/profile', component: Profile, meta: { requiresAuth: true } },
   { path: '/staff/orders', component: StaffOrders, meta: { requiresAuth: true, roles: STAFF_ROLES } },
+  { path: '/staff/orders/new', component: StaffNewOrders, meta: { requiresAuth: true, roles: STAFF_ROLES } },
+  { path: '/staff/orders/my', component: StaffMyOrders, meta: { requiresAuth: true, roles: STAFF_ROLES } },
 ]
 
 const router = createRouter({

@@ -1,8 +1,5 @@
 <template>
-  <div
-    ref="wrap"
-    :class="['accWrap', `accWrap--${variant}`, { 'is-open': isOpen }]"
-  >
+  <div ref="wrap" :class="['accWrap', `accWrap--${variant}`, { 'is-open': isOpen }]">
     <button
       type="button"
       class="accTrigger"
@@ -44,13 +41,17 @@
           <RouterLink v-if="isStaff" class="accItem" to="/staff/orders" @click="closeMenu">
             Darbinieka panelis
           </RouterLink>
+          <RouterLink v-if="isStaff" class="accItem" to="/staff/orders/new" @click="closeMenu">
+            Jaunie pasūtījumi
+          </RouterLink>
+          <RouterLink v-if="isStaff" class="accItem" to="/staff/orders/my" @click="closeMenu">
+            Mani pasūtījumi
+          </RouterLink>
         </template>
       </div>
 
       <div v-if="!isGuest" class="accFooter">
-        <button class="accAction" type="button" @click="handleLogout">
-          Iziet
-        </button>
+        <button class="accAction" type="button" @click="handleLogout">Iziet</button>
       </div>
     </div>
   </div>
@@ -205,13 +206,6 @@ onBeforeUnmount(() => {
 .accWrap--light.is-open .accTrigger {
   border-color: rgba(37, 99, 235, 0.18);
   box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
-}
-
-.accWrap--dark:hover .accTrigger,
-.accWrap--dark:focus-within .accTrigger,
-.accWrap--dark.is-open .accTrigger {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .accIcon {

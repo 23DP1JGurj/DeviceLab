@@ -1,334 +1,36 @@
-﻿<template>
+<template>
   <div class="page">
     <div class="topbar">
       <div class="titleBlock">
-        <h1 class="h1">Staff Orders</h1>
-        <div class="subtitle">DeviceLab staff panel</div>
+        <h1 class="h1">Darbinieka panelis</h1>
+        <div class="subtitle">Izvēlies darba sadaļu un turpini apstrādāt pasūtījumus.</div>
       </div>
 
       <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Home</RouterLink>
+        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
         <AccountMenu />
       </div>
     </div>
 
-    <div class="card">
-      <div class="cardHead">
-        <div>
-          <div class="cardTitle">Filters</div>
-        </div>
+    <div class="dashboardGrid">
+      <RouterLink class="dashCard" to="/staff/orders/new">
+        <div class="dashKicker">Pieņemšana</div>
+        <div class="dashTitle">Jaunie pasūtījumi</div>
+        <div class="dashText">Apskati brīvos pasūtījumus un pieņem tos darbā.</div>
+      </RouterLink>
 
-        <div class="row">
-          <button class="btn btnGhost" type="button" @click="resetFilters">Reset</button>
-        </div>
-      </div>
-
-      <div class="gridFilters">
-        <label class="field">
-          <div class="label">Search (order number)</div>
-          <input class="control" v-model.trim="filters.search" type="text" placeholder="DL-2026..." />
-        </label>
-
-        <label class="field">
-          <div class="label">Status</div>
-          <select class="control" v-model="filters.status">
-            <option value="">All</option>
-            <option value="new">new</option>
-            <option value="confirmed">confirmed</option>
-            <option value="in_progress">in_progress</option>
-            <option value="waiting_parts">waiting_parts</option>
-            <option value="done">done</option>
-            <option value="cancelled">cancelled</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <div class="label">Branch ID</div>
-          <input class="control" v-model.number="filters.branch_id" type="number" min="1" placeholder="1" />
-        </label>
-      </div>
+      <RouterLink class="dashCard" to="/staff/orders/my">
+        <div class="dashKicker">Darbs</div>
+        <div class="dashTitle">Mani pasūtījumi</div>
+        <div class="dashText">Maini statusu, pievieno diagnozi un darba piezīmes.</div>
+      </RouterLink>
     </div>
-
-    <div class="sectionHeader">
-      <div class="sectionTitle">Orders list</div>
-      <div class="muted">Total: {{ total }}</div>
-    </div>
-
-    <div v-if="listLoading" class="card">
-      <div class="muted">Loading...</div>
-    </div>
-
-    <div v-else>
-      <div v-if="listError" class="card">
-        <div class="msg">{{ listError }}</div>
-      </div>
-
-      <div v-else-if="orders.length === 0" class="card">
-        <div class="muted">No orders yet.</div>
-      </div>
-
-      <div class="card orderCard" v-for="o in orders" :key="o.id">
-        <div class="orderTop">
-          <div class="orderMain">
-            <div class="orderLine">
-              <div class="orderNum">{{ o.order_number }}</div>
-              <span class="badge" :class="'st_' + o.status">{{ o.status }}</span>
-            </div>
-
-            <div class="muted">{{ o.problem_description || '—' }}</div>
-
-            <div class="chips">
-              <span class="chip">ID: {{ o.id }}</span>
-              <span class="chip">User: {{ o.user_id }}</span>
-              <span class="chip">Branch: {{ o.branch_id }}</span>
-              <span class="chip">Device: {{ o.device_id }}</span>
-              <span class="chip">Created: {{ formatDate(o.created_at) }}</span>
-            </div>
-          </div>
-
-          <div class="cost">
-            <div class="muted small">Final cost</div>
-            <div class="costValue">{{ o.final_cost ?? '—' }}</div>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="itemsBlock">
-          <div class="subTitle">Items</div>
-          <ul class="itemsList">
-            <li v-for="it in o.items" :key="it.id">
-              <template v-if="it.item_type === 'service'">
-                <b>service:</b> {{ it.service?.name || ('#' + it.service_id) }}
-              </template>
-              <template v-else>
-                <b>part:</b> {{ it.part?.name || ('#' + it.part_id) }}
-              </template>
-              — {{ it.quantity }} × {{ it.unit_price }} = <b>{{ it.line_total }}</b>
-            </li>
-          </ul>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="editBlock">
-          <div class="subTitle">Update</div>
-
-          <div class="gridEdit">
-            <label class="field">
-              <div class="label">Status</div>
-              <select class="control" v-model="edit[o.id].status">
-                <option value="new">new</option>
-                <option value="confirmed">confirmed</option>
-                <option value="in_progress">in_progress</option>
-                <option value="waiting_parts">waiting_parts</option>
-                <option value="done">done</option>
-                <option value="cancelled">cancelled</option>
-              </select>
-            </label>
-
-            <label class="field">
-              <div class="label">Diagnosis</div>
-              <textarea class="control textarea" v-model="edit[o.id].diagnosis" rows="2" />
-            </label>
-
-            <label class="field">
-              <div class="label">Work log</div>
-              <textarea class="control textarea" v-model="edit[o.id].work_log" rows="2" />
-            </label>
-          </div>
-
-          <div class="row mt12">
-            <button
-              class="btn btnPrimary"
-              type="button"
-              @click="saveOrder(o.id)"
-              :disabled="savingId === o.id"
-            >
-              {{ savingId === o.id ? 'Saving...' : 'Save' }}
-            </button>
-
-            <button class="btn btnDanger" type="button" @click="deleteOrder(o.id)" :disabled="savingId === o.id">
-              Delete
-            </button>
-
-            <div class="msg" v-if="saveError && saveErrorId === o.id">{{ saveError }}</div>
-            <div class="msg ok" v-else-if="saveOkId === o.id">Saved вњ“</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="spacer"></div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
-import { authFetch, extractErrorMessage, initAuth } from '../auth'
-
-const router = useRouter()
-
-const orders = ref([])
-const total = ref(0)
-const listLoading = ref(false)
-const listError = ref('')
-
-const savingId = ref(null)
-const saveError = ref('')
-const saveErrorId = ref(null)
-const saveOkId = ref(null)
-
-const filters = reactive({
-  search: '',
-  status: '',
-  branch_id: '',
-})
-
-const edit = reactive({})
-
-function ensureEdit(order) {
-  if (!edit[order.id]) {
-    edit[order.id] = {
-      status: order.status || 'new',
-      diagnosis: order.diagnosis || '',
-      work_log: order.work_log || '',
-    }
-  } else {
-    edit[order.id].status = order.status || edit[order.id].status
-    edit[order.id].diagnosis = order.diagnosis || ''
-    edit[order.id].work_log = order.work_log || ''
-  }
-}
-
-function formatDate(s) {
-  try { return new Date(s).toLocaleString() } catch { return s }
-}
-
-function buildOrdersUrl() {
-  const params = new URLSearchParams()
-
-  if (filters.search) params.set('search', filters.search)
-  if (filters.status) params.set('status', filters.status)
-  if (filters.branch_id !== '' && filters.branch_id !== null) {
-    params.set('branch_id', String(filters.branch_id))
-  }
-
-  const qs = params.toString()
-  return qs ? `/api/staff/orders?${qs}` : '/api/staff/orders'
-}
-
-async function loadOrders() {
-  listLoading.value = true
-  listError.value = ''
-  try {
-    const res = await authFetch(buildOrdersUrl())
-
-    if (!res.ok) {
-      if (res.status === 401) {
-        await router.push({ path: '/login', query: { redirect: '/staff/orders' } })
-        return
-      }
-
-      throw new Error(await extractErrorMessage(res, 'Unable to load orders.'))
-    }
-
-    const json = await res.json()
-    orders.value = json.data ?? []
-    total.value = json.total ?? orders.value.length
-
-    for (const order of orders.value) ensureEdit(order)
-  } catch (e) {
-    orders.value = []
-    total.value = 0
-    listError.value = (e?.message || 'Unable to load orders.').slice(0, 260)
-  } finally {
-    listLoading.value = false
-  }
-}
-
-function resetFilters() {
-  filters.search = ''
-  filters.status = ''
-  filters.branch_id = ''
-  loadOrders()
-}
-
-async function saveOrder(id) {
-  savingId.value = id
-  saveError.value = ''
-  saveErrorId.value = null
-  saveOkId.value = null
-
-  try {
-    const payload = {
-      status: edit[id].status,
-      diagnosis: edit[id].diagnosis,
-      work_log: edit[id].work_log,
-    }
-
-    const res = await authFetch(`/api/staff/orders/${id}`, {
-      method: 'PATCH',
-      json: payload,
-    })
-
-    if (!res.ok) {
-      if (res.status === 401) {
-        await router.push({ path: '/login', query: { redirect: '/staff/orders' } })
-        return
-      }
-
-      throw new Error(await extractErrorMessage(res, 'Unable to save order.'))
-    }
-
-    saveOkId.value = id
-    await loadOrders()
-    setTimeout(() => {
-      if (saveOkId.value === id) saveOkId.value = null
-    }, 1200)
-  } catch (e) {
-    saveError.value = (e?.message || 'Error').slice(0, 260)
-    saveErrorId.value = id
-  } finally {
-    savingId.value = null
-  }
-}
-
-async function deleteOrder(id) {
-  if (!confirm(`Delete order #${id}?`)) return
-
-  savingId.value = id
-  saveError.value = ''
-  saveErrorId.value = null
-  saveOkId.value = null
-
-  try {
-    const res = await authFetch(`/api/staff/orders/${id}`, {
-      method: 'DELETE',
-    })
-    if (!res.ok) {
-      if (res.status === 401) {
-        await router.push({ path: '/login', query: { redirect: '/staff/orders' } })
-        return
-      }
-
-      throw new Error(await extractErrorMessage(res, 'Unable to delete order.'))
-    }
-    await loadOrders()
-  } catch (e) {
-    saveError.value = (e?.message || 'Error').slice(0, 260)
-    saveErrorId.value = id
-  } finally {
-    savingId.value = null
-  }
-}
-
-onMounted(async () => {
-  await initAuth().catch(() => null)
-  await loadOrders()
-})
 </script>
 
 <style scoped>
@@ -351,15 +53,15 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: flex-end;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
-.titleBlock { min-width: 0; }
 .h1 {
   margin: 0;
   font-size: 34px;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
+
 .subtitle {
   margin-top: 6px;
   color: #64748b;
@@ -368,132 +70,53 @@ onMounted(async () => {
 
 .topActions {
   display: flex;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  align-items: center;
 }
 
-.card {
-  background: rgba(255, 255, 255, 0.92);
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashCard {
+  display: grid;
+  gap: 10px;
+  min-height: 190px;
+  padding: 22px;
+  color: #0f172a;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
-  padding: 16px;
-  margin-top: 14px;
+  border-radius: 20px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.cardHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
+.dashCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.24);
+  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.12);
 }
 
-.cardTitle {
-  font-weight: 800;
-  font-size: 16px;
-}
-
-.sectionHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-top: 18px;
-  padding: 0 2px;
-}
-.sectionTitle {
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.field { min-width: 0; }
-.label {
+.dashKicker {
+  color: #2563eb;
   font-size: 12px;
-  color: #475569;
-  margin-bottom: 6px;
-}
-.control {
-  width: 100%;
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
-  background: #fff;
-  outline: none;
-}
-.control:focus {
-  border-color: rgba(37, 99, 235, 0.6);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
-}
-.textarea { resize: vertical; }
-
-.gridFilters {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) minmax(140px, 220px);
-  gap: 12px;
-}
-.gridFilters > * { min-width: 0; }
-
-.orderCard { padding: 16px; }
-.orderTop {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
-  gap: 14px;
-  align-items: start;
-}
-.orderMain { min-width: 0; }
-.orderLine {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.orderNum { font-weight: 900; font-size: 18px; }
-
-.cost { text-align: right; }
-.costValue { font-size: 22px; font-weight: 900; letter-spacing: -0.01em; }
-
-.badge {
-  font-size: 12px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  background: rgba(15, 23, 42, 0.04);
-}
-.st_new { background: rgba(37, 99, 235, 0.10); border-color: rgba(37, 99, 235, 0.22); }
-.st_confirmed { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.22); }
-.st_in_progress { background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.24); }
-.st_waiting_parts { background: rgba(139, 92, 246, 0.10); border-color: rgba(139, 92, 246, 0.24); }
-.st_done { background: rgba(34, 197, 94, 0.10); border-color: rgba(34, 197, 94, 0.24); }
-.st_cancelled { background: rgba(239, 68, 68, 0.10); border-color: rgba(239, 68, 68, 0.24); }
-
-.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.chip {
-  font-size: 12px;
-  color: #334155;
-  background: rgba(148, 163, 184, 0.18);
-  border: 1px solid rgba(148, 163, 184, 0.30);
-  padding: 5px 10px;
-  border-radius: 999px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
-.divider {
-  height: 1px;
-  background: rgba(15, 23, 42, 0.08);
-  margin: 14px 0;
+.dashTitle {
+  font-size: 24px;
+  font-weight: 900;
 }
 
-.subTitle { font-weight: 800; margin-bottom: 8px; }
-.itemsList { margin: 0; padding-left: 18px; color: #0f172a; }
-.itemsList li { margin-bottom: 4px; }
-
-.gridEdit {
-  display: grid;
-  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
+.dashText {
+  color: #64748b;
+  line-height: 1.55;
 }
-.gridEdit > * { min-width: 0; }
 
 .btn {
   border: 1px solid rgba(15, 23, 42, 0.14);
@@ -502,63 +125,22 @@ onMounted(async () => {
   padding: 10px 14px;
   border-radius: 12px;
   cursor: pointer;
-  font-weight: 700;
-}
-.btn:disabled { opacity: 0.65; cursor: not-allowed; }
-
-.btnPrimary {
-  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
-  color: #fff;
-  border-color: rgba(29, 78, 216, 0.60);
-  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+  font-weight: 800;
+  text-decoration: none;
 }
 
-.btnSoft {
-  background: rgba(15, 23, 42, 0.04);
-}
 .btnGhost {
   background: transparent;
 }
 
-.btnDanger {
-  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
-  color: #fff;
-  border-color: rgba(220, 38, 38, 0.60);
-}
+@media (max-width: 720px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
-.row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.msg {
-  font-size: 13px;
-  color: #b91c1c;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.18);
-  padding: 8px 10px;
-  border-radius: 12px;
-}
-.msg.ok {
-  color: #166534;
-  background: rgba(34, 197, 94, 0.10);
-  border-color: rgba(34, 197, 94, 0.22);
-}
-
-.muted { color: #64748b; }
-.small { font-size: 12px; }
-
-.mt12 { margin-top: 12px; }
-.spacer { height: 10px; }
-
-@media (max-width: 920px) {
-  .topbar { align-items: flex-start; flex-direction: column; }
-  .orderTop { grid-template-columns: 1fr; }
-  .cost { text-align: left; }
-  .gridFilters { grid-template-columns: 1fr; }
-  .gridEdit { grid-template-columns: 1fr; }
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
-

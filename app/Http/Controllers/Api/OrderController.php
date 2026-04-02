@@ -26,6 +26,22 @@ class OrderController extends Controller
         return $this->buildOrdersQuery($request, $request->user())->latest()->paginate(10);
     }
 
+    public function unassigned(Request $request)
+    {
+        return $this->buildOrdersQuery($request, $request->user())
+            ->whereNull('assigned_staff_id')
+            ->latest()
+            ->paginate(10);
+    }
+
+    public function assignedToMe(Request $request)
+    {
+        return $this->buildOrdersQuery($request, $request->user())
+            ->where('assigned_staff_id', $request->user()->id)
+            ->latest()
+            ->paginate(10);
+    }
+
     public function myOrders(Request $request)
     {
         return $this->clientIndex($request);
@@ -108,7 +124,7 @@ class OrderController extends Controller
 
             $order->update(['final_cost' => $total]);
 
-            return Order::with(['items.service', 'items.part'])->findOrFail($order->id);
+            return $this->loadOrderRelations($order);
         });
     }
 
@@ -116,7 +132,7 @@ class OrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        return $order->fresh()->load(['items.service', 'items.part']);
+        return $this->loadOrderRelations($order);
     }
 
     public function update(Request $request, Order $order)
@@ -131,7 +147,7 @@ class OrderController extends Controller
 
         $order->update($data);
 
-        return $order->fresh();
+        return $this->loadOrderRelations($order);
     }
 
     public function destroy(Request $request, Order $order)
@@ -143,9 +159,37 @@ class OrderController extends Controller
         return response()->noContent();
     }
 
+    public function claim(Request $request, Order $order)
+    {
+        $claimedOrder = DB::transaction(function () use ($order, $request) {
+            $lockedOrder = Order::query()
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedOrder->assigned_staff_id !== null) {
+                abort(409, 'Šo pasūtījumu jau pieņēma cits darbinieks.');
+            }
+
+            $lockedOrder->assigned_staff_id = $request->user()->id;
+
+            if ($lockedOrder->status === 'new') {
+                $lockedOrder->status = 'confirmed';
+            }
+
+            $lockedOrder->save();
+
+            return $lockedOrder;
+        });
+
+        return $this->loadOrderRelations($claimedOrder);
+    }
+
     private function buildOrdersQuery(Request $request, User $user, bool $forceOwnOrders = false)
     {
         $query = Order::with([
+            'user:id,name,email,phone',
+            'assignedStaff:id,name,email,phone,specialization',
             'branch:id,name,address',
             'device:id,type,brand,model,serial_number',
             'items.service:id,name,base_price',
@@ -170,6 +214,18 @@ class OrderController extends Controller
         }
 
         return $query;
+    }
+
+    private function loadOrderRelations(Order $order): Order
+    {
+        return $order->fresh()->load([
+            'user:id,name,email,phone',
+            'assignedStaff:id,name,email,phone,specialization',
+            'branch:id,name,address',
+            'device:id,type,brand,model,serial_number',
+            'items.service:id,name,base_price',
+            'items.part:id,name,unit_price',
+        ]);
     }
 
     private function ensureDeviceCanBeUsed(User $user, int $deviceId): void

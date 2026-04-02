@@ -112,6 +112,8 @@ class AuthController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->role,
+            'specialization' => $user->specialization,
+            'branch_id' => $user->branch_id,
         ];
     }
 }
