@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderStatusHistory;
 use App\Models\Part;
+use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -145,17 +147,123 @@ class OrderController extends Controller
         return $this->loadOrderRelations($order);
     }
 
+    public function payment(Request $request, Order $order)
+    {
+        $this->ensureClientOwnsOrder($request->user(), $order);
+
+        if ($order->payment) {
+            return $order->payment;
+        }
+
+        if ($order->status === 'ready' && (float) $order->final_cost > 0) {
+            return response()->json([
+                'order_id' => $order->id,
+                'user_id' => $request->user()->id,
+                'amount' => $order->final_cost,
+                'status' => Payment::STATUS_PENDING,
+                'paid_at' => null,
+                'method' => null,
+            ]);
+        }
+
+        return response()->json([
+            'order_id' => $order->id,
+            'amount' => $order->final_cost,
+            'status' => 'unavailable',
+            'paid_at' => null,
+            'method' => null,
+        ]);
+    }
+
+    public function pay(Request $request, Order $order)
+    {
+        $this->ensureClientOwnsOrder($request->user(), $order);
+
+        return DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::query()
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $existingPayment = Payment::query()
+                ->where('order_id', $lockedOrder->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingPayment?->status === Payment::STATUS_PAID) {
+                abort(409, 'Pasūtījums jau ir apmaksāts.');
+            }
+
+            if ($lockedOrder->user_id !== $request->user()->id) {
+                abort(403);
+            }
+
+            if ($lockedOrder->status !== 'ready') {
+                throw ValidationException::withMessages([
+                    'order' => ['Rēķinu var apmaksāt tikai tad, kad pasūtījums ir gatavs saņemšanai.'],
+                ]);
+            }
+
+            if ((float) $lockedOrder->final_cost <= 0) {
+                throw ValidationException::withMessages([
+                    'amount' => ['Apmaksas summa nav korekta.'],
+                ]);
+            }
+
+            $payment = Payment::updateOrCreate(
+                ['order_id' => $lockedOrder->id],
+                [
+                    'user_id' => $request->user()->id,
+                    'amount' => $lockedOrder->final_cost,
+                    'status' => Payment::STATUS_PAID,
+                    'paid_at' => now(),
+                    'method' => 'demo',
+                ]
+            );
+
+            $oldStatus = $lockedOrder->status;
+            $lockedOrder->status = 'done';
+            $lockedOrder->save();
+
+            $this->recordStatusHistory(
+                $lockedOrder,
+                $oldStatus,
+                'done',
+                $request->user()->id,
+                'Klients apmaksāja pasūtījumu. Pasūtījums pabeigts.'
+            );
+
+            return $this->loadOrderRelations($lockedOrder)->setRelation('payment', $payment->fresh());
+        });
+    }
+
     public function update(Request $request, Order $order)
     {
         $this->authorize('update', $order);
 
         $data = $request->validate([
-            'status' => ['sometimes', 'in:new,confirmed,in_progress,waiting_parts,done,cancelled'],
+            'status' => ['sometimes', 'in:new,confirmed,diagnostics,in_progress,waiting_parts,ready,done,cancelled'],
             'diagnosis' => ['sometimes', 'nullable', 'string'],
             'work_log' => ['sometimes', 'nullable', 'string'],
+            'status_comment' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ]);
 
+        $oldStatus = $order->status;
+        $newStatus = $data['status'] ?? $oldStatus;
+
+        unset($data['status_comment']);
+
         $order->update($data);
+
+        if ($newStatus !== $oldStatus) {
+            $this->recordStatusHistory(
+                $order,
+                $oldStatus,
+                $newStatus,
+                $request->user()?->id,
+                $request->input('status_comment')
+            );
+        }
 
         return $this->loadOrderRelations($order);
     }
@@ -167,6 +275,160 @@ class OrderController extends Controller
         $order->delete();
 
         return response()->noContent();
+    }
+
+    public function storeItem(Request $request, Order $order)
+    {
+        $this->ensureStaffCanManageItems($request->user(), $order);
+
+        $data = $request->validate([
+            'item_type' => ['required', 'in:service,part'],
+            'service_id' => ['nullable', 'integer', 'exists:services,id'],
+            'part_id' => ['nullable', 'integer', 'exists:parts,id'],
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        return DB::transaction(function () use ($data, $order) {
+            $quantity = (int) $data['quantity'];
+
+            if ($data['item_type'] === 'service') {
+                if (empty($data['service_id'])) {
+                    throw ValidationException::withMessages([
+                        'service_id' => ['Izvēlies pakalpojumu.'],
+                    ]);
+                }
+
+                $service = Service::query()
+                    ->whereKey($data['service_id'])
+                    ->where('is_active', 1)
+                    ->firstOrFail();
+
+                $unitPrice = (float) $service->base_price;
+
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'item_type' => 'service',
+                    'service_id' => $service->id,
+                    'part_id' => null,
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $unitPrice * $quantity,
+                ]);
+            } else {
+                if (empty($data['part_id'])) {
+                    throw ValidationException::withMessages([
+                        'part_id' => ['Izvēlies detaļu.'],
+                    ]);
+                }
+
+                $part = Part::query()
+                    ->whereKey($data['part_id'])
+                    ->where('is_active', 1)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($part->stock_qty < $quantity) {
+                    throw ValidationException::withMessages([
+                        'quantity' => ['Noliktavā nepietiek detaļu.'],
+                    ]);
+                }
+
+                $part->stock_qty -= $quantity;
+                $part->save();
+
+                $unitPrice = (float) $part->unit_price;
+
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'item_type' => 'part',
+                    'service_id' => null,
+                    'part_id' => $part->id,
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $unitPrice * $quantity,
+                ]);
+            }
+
+            $this->recalculateFinalCost($order);
+
+            return $this->loadOrderRelations($order);
+        });
+    }
+
+    public function updateItem(Request $request, Order $order, OrderItem $item)
+    {
+        $this->ensureStaffCanManageItems($request->user(), $order);
+        $this->ensureItemBelongsToOrder($item, $order);
+
+        $data = $request->validate([
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        return DB::transaction(function () use ($data, $order, $item) {
+            $item = OrderItem::query()
+                ->whereKey($item->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $newQuantity = (int) $data['quantity'];
+            $oldQuantity = (int) $item->quantity;
+
+            if ($item->item_type === 'part' && $item->part_id) {
+                $part = Part::query()
+                    ->whereKey($item->part_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $diff = $newQuantity - $oldQuantity;
+
+                if ($diff > 0 && $part->stock_qty < $diff) {
+                    throw ValidationException::withMessages([
+                        'quantity' => ['Noliktavā nepietiek detaļu.'],
+                    ]);
+                }
+
+                $part->stock_qty -= $diff;
+                $part->save();
+            }
+
+            $item->quantity = $newQuantity;
+            $item->line_total = (float) $item->unit_price * $newQuantity;
+            $item->save();
+
+            $this->recalculateFinalCost($order);
+
+            return $this->loadOrderRelations($order);
+        });
+    }
+
+    public function destroyItem(Request $request, Order $order, OrderItem $item)
+    {
+        $this->ensureStaffCanManageItems($request->user(), $order);
+        $this->ensureItemBelongsToOrder($item, $order);
+
+        return DB::transaction(function () use ($order, $item) {
+            $item = OrderItem::query()
+                ->whereKey($item->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($item->item_type === 'part' && $item->part_id) {
+                $part = Part::query()
+                    ->whereKey($item->part_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($part) {
+                    $part->stock_qty += (int) $item->quantity;
+                    $part->save();
+                }
+            }
+
+            $item->delete();
+            $this->recalculateFinalCost($order);
+
+            return $this->loadOrderRelations($order);
+        });
     }
 
     public function claim(Request $request, Order $order)
@@ -181,6 +443,7 @@ class OrderController extends Controller
                 abort(409, 'Šo pasūtījumu jau pieņēma cits darbinieks.');
             }
 
+            $oldStatus = $lockedOrder->status;
             $lockedOrder->assigned_staff_id = $request->user()->id;
 
             if ($lockedOrder->status === 'new') {
@@ -188,6 +451,16 @@ class OrderController extends Controller
             }
 
             $lockedOrder->save();
+
+            $this->recordStatusHistory(
+                $lockedOrder,
+                $oldStatus,
+                $lockedOrder->status,
+                $request->user()->id,
+                $oldStatus === $lockedOrder->status
+                    ? 'Pasūtījums piešķirts darbiniekam.'
+                    : 'Pasūtījumu pieņēma darbinieks.'
+            );
 
             return $lockedOrder;
         });
@@ -204,6 +477,8 @@ class OrderController extends Controller
             'device:id,type,component_type,brand,model,specs,serial_number',
             'items.service:id,name,base_price',
             'items.part:id,name,unit_price',
+            'statusHistory.changedBy:id,name,email',
+            'payment:id,order_id,user_id,amount,status,paid_at,method',
         ]);
 
         if ($forceOwnOrders || $user->hasRole(User::ROLE_CLIENT)) {
@@ -235,7 +510,54 @@ class OrderController extends Controller
             'device:id,type,component_type,brand,model,specs,serial_number',
             'items.service:id,name,base_price',
             'items.part:id,name,unit_price',
+            'statusHistory.changedBy:id,name,email',
+            'payment:id,order_id,user_id,amount,status,paid_at,method',
         ]);
+    }
+
+    private function recordStatusHistory(
+        Order $order,
+        ?string $oldStatus,
+        string $newStatus,
+        ?int $changedBy,
+        ?string $comment = null
+    ): void {
+        OrderStatusHistory::create([
+            'order_id' => $order->id,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'changed_by' => $changedBy,
+            'comment' => $comment,
+        ]);
+    }
+
+    private function recalculateFinalCost(Order $order): void
+    {
+        $total = OrderItem::query()
+            ->where('order_id', $order->id)
+            ->sum('line_total');
+
+        $order->forceFill(['final_cost' => $total])->save();
+    }
+
+    private function ensureStaffCanManageItems(User $user, Order $order): void
+    {
+        if ($user->hasRole(User::ROLE_ADMIN)) {
+            return;
+        }
+
+        if ($user->hasRole(User::ROLE_STAFF) && $order->assigned_staff_id === $user->id) {
+            return;
+        }
+
+        abort(403, 'Šo pasūtījumu var rediģēt tikai piešķirtais darbinieks vai administrators.');
+    }
+
+    private function ensureItemBelongsToOrder(OrderItem $item, Order $order): void
+    {
+        if ($item->order_id !== $order->id) {
+            abort(404);
+        }
     }
 
     private function buildClientRequestItems(array $data): array
@@ -309,6 +631,13 @@ class OrderController extends Controller
             throw ValidationException::withMessages([
                 'device_id' => ['Izvēlētā ierīce nepieder pašreizējam klientam.'],
             ]);
+        }
+    }
+
+    private function ensureClientOwnsOrder(User $user, Order $order): void
+    {
+        if ($order->user_id !== $user->id) {
+            abort(403);
         }
     }
 

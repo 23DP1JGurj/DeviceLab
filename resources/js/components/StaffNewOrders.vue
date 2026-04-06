@@ -42,7 +42,7 @@
           <div class="orderMain">
             <div class="orderLine">
               <div class="orderNum">{{ order.order_number }}</div>
-              <span class="badge" :class="'st_' + order.status">{{ order.status }}</span>
+              <span class="badge" :class="'st_' + order.status">{{ statusLabel(order.status) }}</span>
             </div>
             <div class="problemText">{{ order.problem_description || '—' }}</div>
           </div>
@@ -88,6 +88,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 import { formatDevice } from '../deviceFormat'
+import { statusLabel } from '../orderStatus'
 
 const router = useRouter()
 const orders = ref([])
@@ -223,8 +224,10 @@ onMounted(async () => {
 .countPill { min-width: 34px; padding: 6px 12px; text-align: center; font-weight: 900; background: #fff; }
 .st_new { background: rgba(37, 99, 235, 0.10); border-color: rgba(37, 99, 235, 0.22); }
 .st_confirmed { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.22); }
+.st_diagnostics { background: rgba(14, 165, 233, 0.10); border-color: rgba(14, 165, 233, 0.24); }
 .st_in_progress { background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.24); }
 .st_waiting_parts { background: rgba(139, 92, 246, 0.10); border-color: rgba(139, 92, 246, 0.24); }
+.st_ready { background: rgba(34, 197, 94, 0.10); border-color: rgba(34, 197, 94, 0.24); }
 .st_done { background: rgba(34, 197, 94, 0.10); border-color: rgba(34, 197, 94, 0.24); }
 .st_cancelled { background: rgba(239, 68, 68, 0.10); border-color: rgba(239, 68, 68, 0.24); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }

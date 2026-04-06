@@ -2,12 +2,14 @@
   <div class="page">
     <div class="topbar">
       <div class="titleBlock">
-        <h1 class="h1">Mani pasūtījumi</h1>
+        <div class="titleRow">
+          <h1 class="h1">Mani pasūtījumi</h1>
+          <RouterLink class="btn btnGhost btnBack" to="/">← Sākums</RouterLink>
+        </div>
         <div class="subtitle">DeviceLab klienta panelis</div>
       </div>
 
       <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
         <AccountMenu />
       </div>
     </div>
@@ -40,7 +42,6 @@
               :class="['requestTypeCard', { active: form.request_type === requestType.value }]"
               @click="selectRequestType(requestType.value)"
             >
-              <span>{{ requestType.kicker }}</span>
               <strong>{{ requestType.title }}</strong>
               <small>{{ requestType.description }}</small>
             </button>
@@ -91,7 +92,7 @@
           </div>
         </div>
 
-        <div class="formSection">
+        <div v-if="form.request_type === 'general'" class="formSection">
           <div class="sectionHeaderLine">
             <div>
               <div class="sectionEyebrow">Problēmas apraksts</div>
@@ -106,6 +107,7 @@
               v-model="form.problem_description"
               rows="4"
               :placeholder="problemPlaceholder"
+              required
             ></textarea>
           </label>
         </div>
@@ -243,7 +245,7 @@
             <div class="orderMain">
               <div class="orderLine">
                 <div class="orderNum">{{ order.order_number }}</div>
-                <span class="badge" :class="'st_' + order.status">{{ order.status }}</span>
+                <span class="badge" :class="'st_' + order.status">{{ statusLabel(order.status) }}</span>
               </div>
 
               <div class="orderDescription">{{ order.problem_description || '—' }}</div>
@@ -266,7 +268,7 @@
 
           <div class="itemsBlock">
             <div class="itemsBlockHead">
-              <div class="subTitle">Pozīcijas</div>
+              <div class="subTitle">Pakalpojumi un detaļas</div>
               <button
                 v-if="hasMoreOrderItems(order)"
                 class="linkButton"
@@ -286,6 +288,52 @@
                 <strong>{{ formatMoney(item.line_total) }}</strong>
               </div>
             </div>
+          </div>
+
+          <OrderStatusTimeline
+            :histories="order.status_history"
+            :current-status="order.status"
+            title="Remonta statuss"
+          />
+
+          <div class="paymentBox">
+            <div class="paymentHead">
+              <div>
+                <div class="subTitle">Rēķins un apmaksa</div>
+                <div class="muted small">Demo apmaksa bez reāla maksājumu pakalpojuma.</div>
+              </div>
+
+              <span v-if="isOrderPaid(order)" class="paymentBadge paid">Apmaksāts</span>
+              <span v-else-if="order.status === 'ready'" class="paymentBadge pending">Gaida apmaksu</span>
+            </div>
+
+            <div v-if="isOrderPaid(order)" class="paymentPaid">
+              <div>
+                <span>Summa</span>
+                <strong>{{ formatMoney(order.payment?.amount ?? order.final_cost) }}</strong>
+              </div>
+              <div v-if="order.payment?.paid_at">
+                <span>Apmaksāts</span>
+                <strong>{{ formatDate(order.payment.paid_at) }}</strong>
+              </div>
+            </div>
+
+            <div v-else-if="order.status === 'ready' && Number(order.final_cost || 0) > 0" class="paymentReady">
+              <div>
+                <div class="paymentAmountLabel">Apmaksai</div>
+                <div class="paymentAmount">{{ formatMoney(order.final_cost) }}</div>
+              </div>
+              <button class="btn btnPrimary payButton" type="button" @click="payOrder(order)" :disabled="payingId === order.id">
+                {{ payingId === order.id ? 'Apstrādā...' : 'Apmaksāt' }}
+              </button>
+            </div>
+
+            <div v-else class="paymentUnavailable">
+              Rēķins būs pieejams, kad pasūtījums būs gatavs saņemšanai.
+            </div>
+
+            <div class="msg mt12" v-if="paymentMessageId === order.id && paymentError">{{ paymentError }}</div>
+            <div class="msg ok mt12" v-else-if="paymentMessageId === order.id && paymentSuccess">{{ paymentSuccess }}</div>
           </div>
         </div>
       </div>
@@ -384,6 +432,8 @@ import AutocompleteInput from './AutocompleteInput.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 import { fetchDeviceBrands, fetchDeviceModels } from '../deviceCatalog'
 import { formatDevice } from '../deviceFormat'
+import { statusLabel } from '../orderStatus'
+import OrderStatusTimeline from './OrderStatusTimeline.vue'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 const ADD_DEVICE_OPTION = '__add_device__'
@@ -407,6 +457,10 @@ const createError = ref('')
 const createSuccess = ref('')
 const requestDetailsOpen = ref(false)
 const expandedOrderIds = ref([])
+const payingId = ref(null)
+const paymentError = ref('')
+const paymentSuccess = ref('')
+const paymentMessageId = ref(null)
 
 const isDeviceModalOpen = ref(false)
 const deviceSaving = ref(false)
@@ -493,9 +547,13 @@ const problemPlaceholder = computed(() => {
   return 'Īsi apraksti problēmu'
 })
 
-const canSubmitRequest = computed(() => (
-  form.request_type !== 'screen_battery' || ['screen', 'battery'].includes(form.repair_option)
-))
+const canSubmitRequest = computed(() => {
+  if (form.request_type === 'general') {
+    return form.problem_description.trim().length > 0
+  }
+
+  return form.request_type !== 'screen_battery' || ['screen', 'battery'].includes(form.repair_option)
+})
 
 const selectedBranch = computed(() => (
   branches.value.find(branch => branch.id === Number(form.branch_id)) ?? null
@@ -535,6 +593,18 @@ function hasMoreOrderItems(order) {
   return (order.items ?? []).length > 3
 }
 
+function isOrderPaid(order) {
+  return order.payment?.status === 'paid' || order.status === 'done'
+}
+
+function replaceOrder(updatedOrder) {
+  const index = orders.value.findIndex(order => order.id === updatedOrder.id)
+
+  if (index >= 0) {
+    orders.value[index] = updatedOrder
+  }
+}
+
 function formatDate(value) {
   try {
     return new Date(value).toLocaleString()
@@ -570,6 +640,10 @@ function selectRequestType(type) {
     form.repair_option = null
   } else if (!form.repair_option) {
     form.repair_option = 'screen'
+  }
+
+  if (type !== 'general') {
+    form.problem_description = ''
   }
 }
 
@@ -822,7 +896,9 @@ async function createOrder() {
     }
 
     if (!canSubmitRequest.value) {
-      throw new Error('Lūdzu, izvēlies remonta veidu.')
+      throw new Error(form.request_type === 'general'
+        ? 'Lūdzu, apraksti problēmu.'
+        : 'Lūdzu, izvēlies remonta veidu.')
     }
 
     const response = await authFetch('/api/my/orders', {
@@ -832,7 +908,7 @@ async function createOrder() {
         device_id: form.device_id,
         request_type: form.request_type,
         repair_option: form.request_type === 'screen_battery' ? form.repair_option : null,
-        problem_description: form.problem_description,
+        problem_description: form.request_type === 'general' ? form.problem_description : null,
       },
     })
 
@@ -854,6 +930,36 @@ async function createOrder() {
     createError.value = (error?.message || 'Kļūda').slice(0, 260)
   } finally {
     creating.value = false
+  }
+}
+
+async function payOrder(order) {
+  payingId.value = order.id
+  paymentError.value = ''
+  paymentSuccess.value = ''
+  paymentMessageId.value = order.id
+
+  try {
+    const response = await authFetch(`/api/my/orders/${order.id}/pay`, {
+      method: 'POST',
+    })
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        await redirectByRole()
+        return
+      }
+
+      throw new Error(await extractErrorMessage(response, 'Neizdevās apmaksāt pasūtījumu.'))
+    }
+
+    const updatedOrder = await response.json()
+    replaceOrder(updatedOrder)
+    paymentSuccess.value = 'Pasūtījums apmaksāts.'
+  } catch (error) {
+    paymentError.value = (error?.message || 'Neizdevās apmaksāt pasūtījumu.').slice(0, 260)
+  } finally {
+    payingId.value = null
   }
 }
 
@@ -959,6 +1065,14 @@ onMounted(async () => {
 }
 
 .titleBlock { min-width: 0; }
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .h1 {
   margin: 0;
   font-size: 34px;
@@ -975,6 +1089,12 @@ onMounted(async () => {
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.btnBack {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 14px;
 }
 
 .card {
@@ -1097,8 +1217,10 @@ onMounted(async () => {
 }
 .st_new { background: rgba(37, 99, 235, 0.10); border-color: rgba(37, 99, 235, 0.22); }
 .st_confirmed { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.22); }
+.st_diagnostics { background: rgba(14, 165, 233, 0.10); border-color: rgba(14, 165, 233, 0.24); }
 .st_in_progress { background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.24); }
 .st_waiting_parts { background: rgba(139, 92, 246, 0.10); border-color: rgba(139, 92, 246, 0.24); }
+.st_ready { background: rgba(34, 197, 94, 0.10); border-color: rgba(34, 197, 94, 0.24); }
 .st_done { background: rgba(34, 197, 94, 0.10); border-color: rgba(34, 197, 94, 0.24); }
 .st_cancelled { background: rgba(239, 68, 68, 0.10); border-color: rgba(239, 68, 68, 0.24); }
 
@@ -1341,8 +1463,9 @@ onMounted(async () => {
 
 .requestTypeCard {
   display: grid;
-  gap: 7px;
-  min-height: 138px;
+  align-content: start;
+  gap: 9px;
+  min-height: 118px;
   padding: 16px;
   text-align: left;
   color: #071833;
@@ -1359,14 +1482,6 @@ onMounted(async () => {
   border-color: #93c5fd;
   box-shadow: 0 16px 32px rgba(37, 99, 235, 0.12);
   transform: translateY(-1px);
-}
-
-.requestTypeCard span {
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .requestTypeCard strong {
@@ -1778,6 +1893,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   gap: 18px;
+  align-items: flex-start;
 }
 
 .titleBlock {
@@ -1790,6 +1906,7 @@ onMounted(async () => {
   flex-wrap: nowrap;
   gap: 12px;
   min-width: 0;
+  margin-top: 2px;
 }
 
 .dashboardGrid {
@@ -2045,6 +2162,94 @@ onMounted(async () => {
   gap: 12px;
 }
 
+.paymentBox {
+  margin-top: 18px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+}
+
+.paymentHead,
+.paymentReady,
+.paymentPaid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.paymentBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.paymentBadge.paid {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.paymentBadge.pending {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.paymentReady,
+.paymentPaid,
+.paymentUnavailable {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.paymentAmountLabel,
+.paymentPaid span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.paymentAmount {
+  color: #071833;
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.paymentPaid {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.paymentPaid div {
+  display: grid;
+  gap: 4px;
+  min-width: 150px;
+}
+
+.paymentPaid strong {
+  color: #071833;
+}
+
+.paymentUnavailable {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.payButton {
+  min-width: 132px;
+  justify-content: center;
+}
+
 .orderItems.compact {
   gap: 7px;
 }
@@ -2082,6 +2287,12 @@ onMounted(async () => {
 
   .lineItemCard {
     grid-template-columns: 1fr;
+  }
+
+  .paymentHead,
+  .paymentReady {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .lineMain {

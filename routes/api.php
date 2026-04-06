@@ -37,13 +37,13 @@ Route::get('/branches', fn () => Branch::query()
     ->get());
 
 Route::get('/services', fn () => Service::query()
-    ->select('id', 'name', 'description', 'base_price')
+    ->select('id', 'name', 'description', 'base_price', 'is_active')
     ->where('is_active', 1)
     ->orderBy('name')
     ->get());
 
 Route::get('/parts', fn () => Part::query()
-    ->select('id', 'name', 'sku', 'unit_price', 'stock_qty')
+    ->select('id', 'name', 'sku', 'unit_price', 'stock_qty', 'is_active')
     ->where('is_active', 1)
     ->orderBy('name')
     ->get());
@@ -59,6 +59,8 @@ Route::prefix('my')
         Route::delete('/devices/{device}', [MyDeviceController::class, 'destroy']);
         Route::get('/orders', [OrderController::class, 'clientIndex']);
         Route::post('/orders', [OrderController::class, 'store']);
+        Route::get('/orders/{order}/payment', [OrderController::class, 'payment']);
+        Route::post('/orders/{order}/pay', [OrderController::class, 'pay']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
     });
 
@@ -80,4 +82,7 @@ Route::prefix('staff')
         Route::post('/orders/{order}/claim', [OrderController::class, 'claim']);
         Route::patch('/orders/{order}', [OrderController::class, 'update']);
         Route::delete('/orders/{order}', [OrderController::class, 'destroy']);
+        Route::post('/orders/{order}/items', [OrderController::class, 'storeItem']);
+        Route::patch('/orders/{order}/items/{item}', [OrderController::class, 'updateItem']);
+        Route::delete('/orders/{order}/items/{item}', [OrderController::class, 'destroyItem']);
     });

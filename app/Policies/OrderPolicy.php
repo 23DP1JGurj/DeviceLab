@@ -18,11 +18,19 @@ class OrderPolicy
 
     public function update(User $user, Order $order): bool
     {
-        return $user->hasAnyRole([User::ROLE_STAFF, User::ROLE_ADMIN]);
+        if ($user->hasRole(User::ROLE_ADMIN)) {
+            return true;
+        }
+
+        return $user->hasRole(User::ROLE_STAFF) && $order->assigned_staff_id === $user->id;
     }
 
     public function delete(User $user, Order $order): bool
     {
-        return $user->hasAnyRole([User::ROLE_STAFF, User::ROLE_ADMIN]);
+        if ($user->hasRole(User::ROLE_ADMIN)) {
+            return true;
+        }
+
+        return $user->hasRole(User::ROLE_STAFF) && $order->assigned_staff_id === $user->id;
     }
 }
