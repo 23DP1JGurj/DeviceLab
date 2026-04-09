@@ -3,10 +3,9 @@
     <div class="topbar">
       <div class="titleBlock">
         <div class="titleRow">
-        <h1 class="h1">{{ pageTitle }}</h1>
+          <h1 class="h1">{{ pageTitle }}</h1>
           <RouterLink class="btn btnGhost btnBack" to="/">← Sākums</RouterLink>
         </div>
-        <div class="subtitle">DeviceLab klienta panelis</div>
       </div>
 
       <div class="topActions">
@@ -102,8 +101,7 @@
             <div class="lineItemCard">
               <div class="lineMain">
                 <div class="lineName">
-                  <strong>{{ selectedService?.name || 'Serviss tiks precizēts' }}</strong>
-                  <small>{{ selectedRequestType.title }}</small>
+                  <strong>{{ displayServiceTitle }}</strong>
                 </div>
               </div>
 
@@ -139,7 +137,7 @@
           </div>
           <div class="summaryItem">
             <span>Pakalpojums</span>
-            <b>{{ selectedService?.name || 'Tiks precizēts' }}</b>
+            <b>{{ displayServiceTitle }}</b>
           </div>
         </div>
 
@@ -493,6 +491,24 @@ const selectedRequestType = computed(() => (
 ))
 
 const selectedService = computed(() => findServiceForRequest())
+
+const displayServiceTitle = computed(() => {
+  if (form.request_type === 'general') {
+    return 'Vispārīgs servisa pieteikums'
+  }
+
+  if (form.request_type === 'screen_battery') {
+    return form.repair_option === 'battery'
+      ? 'Akumulatora maiņa'
+      : 'Ekrāna maiņa'
+  }
+
+  if (form.request_type === 'quick_diagnostics') {
+    return selectedService.value?.name || 'Ātrā diagnostika'
+  }
+
+  return selectedService.value?.name || 'Serviss tiks precizēts'
+})
 
 const draftTotal = computed(() => Number(selectedService.value?.base_price || 0))
 
@@ -1030,6 +1046,12 @@ onMounted(async () => {
 }
 
 .titleBlock { min-width: 0; }
+
+.titleBlock::after {
+  content: "";
+  display: block;
+  height: 20px;
+}
 
 .titleRow {
   display: flex;
@@ -1978,16 +2000,10 @@ onMounted(async () => {
   min-width: 0;
 }
 
-.lineName strong,
-.lineName small {
+.lineName strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.lineName small {
-  color: #64748b;
-  font-size: 12px;
 }
 
 .fixedQty {
