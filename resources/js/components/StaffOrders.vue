@@ -21,7 +21,7 @@
 
       <RouterLink class="dashCard" to="/staff/orders/my">
         <div class="dashKicker">Darbs</div>
-        <div class="dashTitle">Mani pasūtījumi</div>
+        <div class="dashTitle">Pieņemtie pasūtījumi</div>
         <div class="dashText">Maini statusu, pievieno diagnozi un darba piezīmes.</div>
       </RouterLink>
     </div>

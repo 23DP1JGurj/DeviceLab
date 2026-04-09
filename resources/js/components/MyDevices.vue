@@ -93,6 +93,8 @@
       <div class="muted">Kopā: {{ devices.length }}</div>
     </div>
 
+    <div v-if="deleteError" class="msg mt12">{{ deleteError }}</div>
+
     <div v-if="listLoading" class="card">
       <div class="muted">Ielādējam...</div>
     </div>
@@ -141,6 +143,7 @@ const createError = ref('')
 const createSuccess = ref('')
 
 const deletingId = ref(null)
+const deleteError = ref('')
 const brandSuggestions = ref([])
 const modelSuggestions = ref([])
 
@@ -170,6 +173,7 @@ function formatDeviceLabel(device) {
 async function loadDevices() {
   listLoading.value = true
   listError.value = ''
+  deleteError.value = ''
 
   try {
     const res = await authFetch('/api/my/devices')
@@ -196,6 +200,7 @@ async function createDevice() {
   creating.value = true
   createError.value = ''
   createSuccess.value = ''
+  deleteError.value = ''
 
   try {
     const res = await authFetch('/api/my/devices', {
@@ -233,6 +238,7 @@ async function deleteDevice(device) {
   deletingId.value = device.id
   createError.value = ''
   createSuccess.value = ''
+  deleteError.value = ''
 
   try {
     const res = await authFetch(`/api/my/devices/${device.id}`, {
@@ -250,7 +256,7 @@ async function deleteDevice(device) {
 
     await loadDevices()
   } catch (e) {
-    createError.value = (e?.message || 'Neizdevās dzēst ierīci.').slice(0, 260)
+    deleteError.value = (e?.message || 'Neizdevās dzēst ierīci.').slice(0, 260)
   } finally {
     deletingId.value = null
   }

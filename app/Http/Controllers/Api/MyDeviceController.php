@@ -54,13 +54,9 @@ class MyDeviceController extends Controller
             abort(403, 'Drīkst dzēst tikai savas ierīces.');
         }
 
-        $hasActiveOrders = $device->orders()
-            ->whereNotIn('status', ['done', 'cancelled'])
-            ->exists();
-
-        if ($hasActiveOrders) {
+        if ($device->orders()->exists()) {
             throw ValidationException::withMessages([
-                'device' => ['Šai ierīcei ir aktīvi pasūtījumi, tāpēc to nevar dzēst.'],
+                'device' => ['Šai ierīcei jau ir piesaistīti pasūtījumi, tāpēc to nevar dzēst.'],
             ]);
         }
 

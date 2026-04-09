@@ -44,6 +44,18 @@ class OrderController extends Controller
             ->paginate(10);
     }
 
+    public function staffHistory(Request $request)
+    {
+        $query = $this->buildOrdersQuery($request, $request->user())
+            ->whereIn('status', ['done', 'cancelled']);
+
+        if ($request->user()->hasRole(User::ROLE_STAFF)) {
+            $query->where('assigned_staff_id', $request->user()->id);
+        }
+
+        return $query->latest()->paginate(10);
+    }
+
     public function myOrders(Request $request)
     {
         return $this->clientIndex($request);

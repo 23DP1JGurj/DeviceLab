@@ -3,7 +3,7 @@
     <div class="topbar">
       <div class="titleBlock">
         <div class="titleRow">
-          <h1 class="h1">Mani pasūtījumi</h1>
+        <h1 class="h1">{{ pageTitle }}</h1>
           <RouterLink class="btn btnGhost btnBack" to="/">← Sākums</RouterLink>
         </div>
         <div class="subtitle">DeviceLab klienta panelis</div>
@@ -14,7 +14,7 @@
       </div>
     </div>
 
-    <div class="dashboardGrid">
+    <div v-if="showCreate" class="dashboardGrid">
       <section class="card formCard">
         <div class="cardHead">
           <div>
@@ -27,12 +27,7 @@
         <div v-if="metaError" class="msg mt12">{{ metaError }}</div>
 
         <div class="formSection">
-          <div class="sectionHeaderLine">
-            <div>
-              <div class="sectionEyebrow">Izvēlies pieteikuma veidu</div>
-              <div class="sectionHint">Ātrākai noformēšanai izvēlies tuvāko servisa scenāriju.</div>
-            </div>
-          </div>
+          <div class="sectionEyebrow">Izvēlies pieteikuma veidu</div>
 
           <div class="requestTypeGrid">
             <button
@@ -43,18 +38,12 @@
               @click="selectRequestType(requestType.value)"
             >
               <strong>{{ requestType.title }}</strong>
-              <small>{{ requestType.description }}</small>
             </button>
           </div>
         </div>
 
         <div class="formSection">
-          <div class="sectionHeaderLine">
-            <div>
-              <div class="sectionEyebrow">Pamatinformācija</div>
-              <div class="sectionHint">Norādi filiāli un ierīci, kuru nodosi servisā.</div>
-            </div>
-          </div>
+          <div class="sectionEyebrow">Pamatinformācija</div>
 
           <div class="grid2">
             <label class="field">
@@ -93,15 +82,9 @@
         </div>
 
         <div v-if="form.request_type === 'general'" class="formSection">
-          <div class="sectionHeaderLine">
-            <div>
-              <div class="sectionEyebrow">Problēmas apraksts</div>
-              <div class="sectionHint">Īsi apraksti simptomus, kad problēma sākās un kas jau ir izmēģināts.</div>
-            </div>
-          </div>
+          <div class="sectionEyebrow">Problēmas apraksts</div>
 
           <label class="field">
-            <div class="label">Problēmas apraksts</div>
             <textarea
               class="control textarea"
               v-model="form.problem_description"
@@ -113,58 +96,26 @@
         </div>
 
         <div class="formSection">
-          <div class="sectionHeaderLine">
-            <div>
-              <div class="sectionEyebrow">Pozīcijas</div>
-              <div class="sectionHint">Klientam pozīcijas tiek sagatavotas automātiski pēc izvēlētā pieteikuma veida.</div>
-            </div>
-            <button class="btn btnSoft btnSmall" type="button" disabled title="Pozīcijas tiek pievienotas automātiski">
-              + Pievienot pozīciju
-            </button>
-          </div>
+          <div class="sectionEyebrow">Pozīcijas</div>
 
           <div class="lineItems">
             <div class="lineItemCard">
               <div class="lineMain">
-                <span class="typePill">Pakalpojums</span>
                 <div class="lineName">
                   <strong>{{ selectedService?.name || 'Serviss tiks precizēts' }}</strong>
                   <small>{{ selectedRequestType.title }}</small>
                 </div>
               </div>
 
-              <div class="qtyBox" aria-label="Daudzums">
-                <button type="button" disabled>−</button>
-                <span>1</span>
-                <button type="button" disabled>+</button>
+              <div class="fixedQty" aria-label="Daudzums">
+                <span>Daudzums</span>
+                <strong>1</strong>
               </div>
 
               <div class="priceBox">
                 <span>Cena</span>
                 <strong>{{ formatMoney(draftTotal) }}</strong>
               </div>
-
-              <div class="priceBox lineTotalBox">
-                <span>Kopā</span>
-                <strong>{{ formatMoney(draftTotal) }}</strong>
-              </div>
-            </div>
-
-            <button class="detailsToggle" type="button" @click="requestDetailsOpen = !requestDetailsOpen">
-              {{ requestDetailsOpen ? 'Paslēpt detalizēti' : 'Detalizēti' }}
-            </button>
-
-            <div v-if="requestDetailsOpen" class="detailsPanel">
-              <label class="field">
-                <div class="label">Papildu piezīmes</div>
-                <input class="control" type="text" disabled placeholder="Tiks izmantots nākamajā posmā" />
-              </label>
-              <label class="field">
-                <div class="label">Kvalitāte</div>
-                <select class="control" disabled>
-                  <option>Standarta serviss</option>
-                </select>
-              </label>
             </div>
           </div>
         </div>
@@ -172,7 +123,6 @@
 
       <aside class="summaryCard">
         <div class="summaryTitle">Kopsavilkums</div>
-        <div class="summaryText">Pārbaudi pieteikuma detaļas pirms nosūtīšanas.</div>
 
         <div class="summaryList">
           <div class="summaryItem">
@@ -190,10 +140,6 @@
           <div class="summaryItem">
             <span>Pakalpojums</span>
             <b>{{ selectedService?.name || 'Tiks precizēts' }}</b>
-          </div>
-          <div class="summaryItem">
-            <span>Pozīciju skaits</span>
-            <b>{{ positionCount }}</b>
           </div>
         </div>
 
@@ -218,7 +164,7 @@
       </aside>
     </div>
 
-    <section class="ordersSection">
+    <section v-if="showHistory" class="ordersSection">
       <div class="sectionHeader">
         <div>
           <div class="sectionTitle">Mani pasūtījumi</div>
@@ -435,10 +381,22 @@ import { formatDevice } from '../deviceFormat'
 import { statusLabel } from '../orderStatus'
 import OrderStatusTimeline from './OrderStatusTimeline.vue'
 
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'all',
+    validator: value => ['all', 'new', 'history'].includes(value),
+  },
+})
+
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 const ADD_DEVICE_OPTION = '__add_device__'
 
 const router = useRouter()
+
+const showCreate = computed(() => props.mode === 'all' || props.mode === 'new')
+const showHistory = computed(() => props.mode === 'all' || props.mode === 'history')
+const pageTitle = computed(() => (showCreate.value && !showHistory.value ? 'Jauns pieteikums' : 'Pasūtījumu vēsture'))
 
 const branches = ref([])
 const services = ref([])
@@ -455,7 +413,6 @@ const metaError = ref('')
 const creating = ref(false)
 const createError = ref('')
 const createSuccess = ref('')
-const requestDetailsOpen = ref(false)
 const expandedOrderIds = ref([])
 const payingId = ref(null)
 const paymentError = ref('')
@@ -695,11 +652,11 @@ function removeItem(index) {
 
 async function redirectByRole() {
   if (hasAnyRole(currentUser.value, ['staff', 'admin'])) {
-    await router.replace('/staff/orders')
+    await router.replace('/staff/orders/new')
     return
   }
 
-  await router.replace({ path: '/login', query: { redirect: '/orders' } })
+  await router.replace({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
 }
 
 function normalizeDraftValue(value) {
@@ -858,7 +815,7 @@ async function loadOrders() {
   listError.value = ''
 
   try {
-    const response = await authFetch('/api/my/orders')
+    const response = await authFetch(showHistory.value ? '/api/my/orders/history' : '/api/my/orders')
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -925,7 +882,9 @@ async function createOrder() {
     localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
     createSuccess.value = `Izveidots: ${created.order_number}`
     form.problem_description = ''
-    await loadOrders()
+    if (showHistory.value) {
+      await loadOrders()
+    }
   } catch (error) {
     createError.value = (error?.message || 'Kļūda').slice(0, 260)
   } finally {
@@ -1035,9 +994,15 @@ watch(
 
 onMounted(async () => {
   await initAuth().catch(() => null)
-  await loadMeta()
-  applyDraft()
-  await loadOrders()
+
+  if (showCreate.value) {
+    await loadMeta()
+    applyDraft()
+  }
+
+  if (showHistory.value) {
+    await loadOrders()
+  }
 })
 </script>
 
@@ -1929,7 +1894,7 @@ onMounted(async () => {
 .cardHead {
   padding-bottom: 18px;
   margin-bottom: 0;
-  border-bottom: 1px solid #e8edf5;
+  border-bottom: 0;
 }
 
 .cardTitle {
@@ -1937,32 +1902,19 @@ onMounted(async () => {
 }
 
 .formSection {
-  padding-top: 22px;
+  padding-top: 26px;
+  margin-top: 24px;
+  border-top: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.formSection:first-of-type {
+  padding-top: 0;
   margin-top: 0;
-}
-
-.sectionHeaderLine {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-  min-width: 0;
-}
-
-.sectionHeaderLine::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  margin-top: 10px;
-  background: linear-gradient(90deg, #e2e8f0, transparent);
-}
-
-.sectionHeaderLine > * {
-  min-width: 0;
+  border-top: 0;
 }
 
 .sectionEyebrow {
+  margin-bottom: 14px;
   font-size: 15px;
 }
 
@@ -1971,8 +1923,9 @@ onMounted(async () => {
 }
 
 .requestTypeCard {
-  min-height: 132px;
+  min-height: 104px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  align-content: center;
 }
 
 .requestTypeCard.active {
@@ -1997,7 +1950,7 @@ onMounted(async () => {
 
 .lineItemCard {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 118px 112px 112px;
+  grid-template-columns: minmax(0, 1fr) 118px 112px;
   gap: 12px;
   align-items: center;
   padding: 14px;
@@ -2016,27 +1969,12 @@ onMounted(async () => {
 .lineMain {
   display: flex;
   align-items: center;
-  gap: 12px;
   min-width: 0;
-}
-
-.typePill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 0 12px;
-  color: #0a66ff;
-  background: #eaf2ff;
-  border: 1px solid #cfe1ff;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 900;
-  white-space: nowrap;
 }
 
 .lineName {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -2052,28 +1990,28 @@ onMounted(async () => {
   font-size: 12px;
 }
 
-.qtyBox {
+.fixedQty {
   display: grid;
-  grid-template-columns: 32px 1fr 32px;
-  align-items: center;
+  gap: 2px;
   min-height: 42px;
-  overflow: hidden;
+  padding: 6px 12px;
+  text-align: center;
   background: #fff;
   border: 1px solid #d8e0eb;
   border-radius: 14px;
 }
 
-.qtyBox button {
-  height: 100%;
-  color: #94a3b8;
-  background: transparent;
-  border: 0;
-  font-weight: 900;
+.fixedQty span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.qtyBox span {
-  text-align: center;
-  font-weight: 900;
+.fixedQty strong {
+  color: #071833;
+  font-size: 15px;
 }
 
 .priceBox {
@@ -2096,11 +2034,6 @@ onMounted(async () => {
   font-size: 15px;
 }
 
-.lineTotalBox strong {
-  color: #0a66ff;
-}
-
-.detailsToggle,
 .linkButton {
   width: fit-content;
   padding: 0;
@@ -2111,25 +2044,18 @@ onMounted(async () => {
   font-weight: 800;
 }
 
-.detailsToggle:hover,
 .linkButton:hover {
   color: #064fc7;
   text-decoration: underline;
 }
 
-.detailsPanel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.35fr);
-  gap: 12px;
-  padding: 14px;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
-  border-radius: 16px;
-}
-
 .summaryCard {
   top: 18px;
   border-color: rgba(10, 102, 255, 0.12);
+}
+
+.summaryCard .summaryList {
+  margin-top: 18px;
 }
 
 .summaryTotal {
@@ -2263,13 +2189,14 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.82);
 }
 
+.formCard .cardHead,
+.formCard .cardHead {
+  border-bottom: 0;
+}
+
 @media (max-width: 980px) {
   .dashboardGrid,
   .requestTypeGrid,
-  .detailsPanel {
-    grid-template-columns: 1fr;
-  }
-
   .summaryCard {
     position: static;
   }
@@ -2304,13 +2231,5 @@ onMounted(async () => {
     text-align: left;
   }
 
-  .sectionHeaderLine {
-    flex-direction: column;
-  }
-
-  .sectionHeaderLine::after {
-    width: 100%;
-    margin-top: 0;
-  }
 }
 </style>

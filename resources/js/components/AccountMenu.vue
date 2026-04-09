@@ -35,17 +35,26 @@
 
         <template v-else>
           <RouterLink class="accItem" to="/profile" @click="closeMenu">Profils</RouterLink>
-          <RouterLink v-if="showClientOrders" class="accItem" to="/orders" @click="closeMenu">
-            Mani pasūtījumi
+          <RouterLink v-if="isClient" class="accItem" to="/devices" @click="closeMenu">
+            Manas ierīces
           </RouterLink>
-          <RouterLink v-if="isStaff" class="accItem" to="/staff/orders" @click="closeMenu">
-            Darbinieka panelis
+          <RouterLink v-if="isClient" class="accItem" to="/orders/new" @click="closeMenu">
+            Jauns pieteikums
+          </RouterLink>
+          <RouterLink v-if="isClient" class="accItem" to="/orders/history" @click="closeMenu">
+            Pasūtījumu vēsture
           </RouterLink>
           <RouterLink v-if="isStaff" class="accItem" to="/staff/orders/new" @click="closeMenu">
             Jaunie pasūtījumi
           </RouterLink>
           <RouterLink v-if="isStaff" class="accItem" to="/staff/orders/my" @click="closeMenu">
-            Mani pasūtījumi
+            Pieņemtie pasūtījumi
+          </RouterLink>
+          <RouterLink v-if="isAdmin" class="accItem" to="/staff/orders/all" @click="closeMenu">
+            Visi pasūtījumi
+          </RouterLink>
+          <RouterLink v-if="isStaff" class="accItem" to="/staff/orders/history" @click="closeMenu">
+            Pasūtījumu vēsture
           </RouterLink>
         </template>
       </div>
@@ -76,7 +85,8 @@ const supportsHover = ref(false)
 
 const isGuest = computed(() => !currentUser.value)
 const isStaff = computed(() => hasAnyRole(currentUser.value, ['staff', 'admin']))
-const showClientOrders = computed(() => currentUser.value?.role === 'client')
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
+const isClient = computed(() => currentUser.value?.role === 'client')
 const primaryLabel = computed(() => currentUser.value?.name?.trim() || 'Ielogoties')
 const menuVisible = computed(() => isOpen.value)
 

@@ -46,15 +46,6 @@
         </div>
       </form>
     </div>
-
-    <div class="card">
-      <div class="cardTitle">Ātrās darbības</div>
-
-      <div class="actionsRow">
-        <RouterLink class="btn btnSoft" :to="ordersPath">{{ ordersLabel }}</RouterLink>
-        <RouterLink v-if="isClient" class="btn btnSoft" to="/devices">Manas ierīces</RouterLink>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -82,10 +73,6 @@ const user = computed(() => currentUser.value ?? {
   phone: '',
   role: '',
 })
-
-const isClient = computed(() => user.value.role === 'client')
-const ordersPath = computed(() => isClient.value ? '/orders' : '/staff/orders')
-const ordersLabel = computed(() => isClient.value ? 'Mani pasūtījumi' : 'Darbinieka panelis')
 
 function syncFormFromUser(value) {
   form.name = value?.name ?? ''
@@ -285,12 +272,6 @@ onMounted(async () => {
 
 .actions {
   grid-column: 1 / -1;
-}
-
-.actionsRow {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 
 .btn {

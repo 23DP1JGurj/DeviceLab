@@ -2,12 +2,11 @@
   <div class="page">
     <div class="topbar">
       <div class="titleBlock">
-        <h1 class="h1">Mani pasūtījumi</h1>
+        <h1 class="h1">Pieņemtie pasūtījumi</h1>
         <div class="subtitle">Pasūtījumi, kurus esi pieņēmis darbā.</div>
       </div>
 
       <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/staff/orders/new">Jaunie pasūtījumi</RouterLink>
         <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
         <AccountMenu />
       </div>
@@ -15,7 +14,7 @@
 
     <div class="sectionHeader">
       <div>
-        <div class="sectionTitle">Darba uzdevumi</div>
+        <div class="sectionTitle">Pieņemtie pasūtījumi</div>
         <div class="muted">Atjauno statusu, diagnozi un darba piezīmes.</div>
       </div>
       <div class="countPill">{{ total }}</div>

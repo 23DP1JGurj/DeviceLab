@@ -59,6 +59,7 @@ Route::prefix('my')
         Route::delete('/devices/{device}', [MyDeviceController::class, 'destroy']);
         Route::get('/orders', [OrderController::class, 'clientIndex']);
         Route::post('/orders', [OrderController::class, 'store']);
+        Route::get('/orders/history', [OrderController::class, 'clientIndex']);
         Route::get('/orders/{order}/payment', [OrderController::class, 'payment']);
         Route::post('/orders/{order}/pay', [OrderController::class, 'pay']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
@@ -77,6 +78,7 @@ Route::prefix('staff')
     ->group(function () {
         Route::get('/orders/unassigned', [OrderController::class, 'unassigned']);
         Route::get('/orders/my', [OrderController::class, 'assignedToMe']);
+        Route::get('/orders/history', [OrderController::class, 'staffHistory']);
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/claim', [OrderController::class, 'claim']);
