@@ -11,6 +11,7 @@ import StaffOrderHistory from '../components/StaffOrderHistory.vue'
 import StaffMyOrders from '../components/StaffMyOrders.vue'
 import StaffNewOrders from '../components/StaffNewOrders.vue'
 import StaffOrders from '../components/StaffOrders.vue'
+import StaffReviews from '../components/StaffReviews.vue'
 import {
   CLIENT_ROLES,
   STAFF_ROLES,
@@ -33,6 +34,7 @@ const routes = [
   { path: '/staff/orders/my', component: StaffMyOrders, meta: { requiresAuth: true, roles: STAFF_ROLES } },
   { path: '/staff/orders/history', component: StaffOrderHistory, meta: { requiresAuth: true, roles: STAFF_ROLES } },
   { path: '/staff/orders/all', component: StaffAllOrders, meta: { requiresAuth: true, roles: ['admin'] } },
+  { path: '/staff/reviews', component: StaffReviews, meta: { requiresAuth: true, roles: STAFF_ROLES } },
 ]
 
 const router = createRouter({

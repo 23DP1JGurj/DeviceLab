@@ -60,6 +60,16 @@ class User extends Authenticatable
         return $this->hasMany(Order::class, 'assigned_staff_id');
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function staffReviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'staff_id');
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->role === $role;

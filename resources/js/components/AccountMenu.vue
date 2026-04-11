@@ -56,6 +56,9 @@
           <RouterLink v-if="isStaff" class="accItem" to="/staff/orders/history" @click="closeMenu">
             Pasūtījumu vēsture
           </RouterLink>
+          <RouterLink v-if="isStaff" class="accItem" to="/staff/reviews" @click="closeMenu">
+            Atsauksmes
+          </RouterLink>
         </template>
       </div>
 

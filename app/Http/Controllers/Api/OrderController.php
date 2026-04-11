@@ -491,6 +491,9 @@ class OrderController extends Controller
             'items.part:id,name,unit_price',
             'statusHistory.changedBy:id,name,email',
             'payment:id,order_id,user_id,amount,status,paid_at,method',
+            'review.user:id,name,email',
+            'review.branch:id,name,address',
+            'review.staff:id,name,email,specialization',
         ]);
 
         if ($forceOwnOrders || $user->hasRole(User::ROLE_CLIENT)) {
@@ -524,6 +527,9 @@ class OrderController extends Controller
             'items.part:id,name,unit_price',
             'statusHistory.changedBy:id,name,email',
             'payment:id,order_id,user_id,amount,status,paid_at,method',
+            'review.user:id,name,email',
+            'review.branch:id,name,address',
+            'review.staff:id,name,email,specialization',
         ]);
     }
 

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceCatalogController;
 use App\Http\Controllers\Api\MyDeviceController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ReviewController;
 use App\Models\Branch;
 use App\Models\Part;
 use App\Models\Service;
@@ -62,7 +63,9 @@ Route::prefix('my')
         Route::get('/orders/history', [OrderController::class, 'clientIndex']);
         Route::get('/orders/{order}/payment', [OrderController::class, 'payment']);
         Route::post('/orders/{order}/pay', [OrderController::class, 'pay']);
+        Route::post('/orders/{order}/review', [ReviewController::class, 'store']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::get('/reviews', [ReviewController::class, 'mine']);
     });
 
 Route::prefix('client')
@@ -76,6 +79,7 @@ Route::prefix('client')
 Route::prefix('staff')
     ->middleware(array_merge($sessionMiddleware, ['auth', 'role:staff,admin']))
     ->group(function () {
+        Route::get('/reviews', [ReviewController::class, 'staffIndex']);
         Route::get('/orders/unassigned', [OrderController::class, 'unassigned']);
         Route::get('/orders/my', [OrderController::class, 'assignedToMe']);
         Route::get('/orders/history', [OrderController::class, 'staffHistory']);

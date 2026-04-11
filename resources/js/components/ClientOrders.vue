@@ -279,6 +279,61 @@
             <div class="msg mt12" v-if="paymentMessageId === order.id && paymentError">{{ paymentError }}</div>
             <div class="msg ok mt12" v-else-if="paymentMessageId === order.id && paymentSuccess">{{ paymentSuccess }}</div>
           </div>
+
+          <div class="reviewBox">
+            <div class="paymentHead">
+              <div>
+                <div class="subTitle">Atsauksme</div>
+                <div class="muted small">Novērtē servisu pēc pabeigta pasūtījuma.</div>
+              </div>
+            </div>
+
+            <div v-if="order.review" class="reviewCard">
+              <div class="reviewTop">
+                <div>
+                  <div class="reviewLabel">Jūsu atsauksme</div>
+                  <div class="stars" :aria-label="`${order.review.rating} no 5`">
+                    {{ starText(order.review.rating) }}
+                  </div>
+                </div>
+                <div class="muted small">{{ formatDate(order.review.created_at) }}</div>
+              </div>
+              <p v-if="order.review.comment" class="reviewComment">{{ order.review.comment }}</p>
+              <div class="chips">
+                <span class="chip">Filiāle: {{ order.review.branch?.name || order.branch?.name || order.branch_id }}</span>
+                <span v-if="order.review.staff" class="chip">Darbinieks: {{ order.review.staff.name }}</span>
+              </div>
+            </div>
+
+            <form v-else-if="canReviewOrder(order)" class="reviewForm" @submit.prevent="submitReview(order)">
+              <div class="ratingButtons" role="radiogroup" aria-label="Vērtējums">
+                <button
+                  v-for="rating in 5"
+                  :key="rating"
+                  type="button"
+                  :class="['starButton', { active: reviewForm(order).rating >= rating }]"
+                  @click="reviewForm(order).rating = rating"
+                >
+                  ★
+                </button>
+              </div>
+              <textarea
+                class="control textarea reviewTextarea"
+                v-model.trim="reviewForm(order).comment"
+                rows="3"
+                placeholder="Komentārs nav obligāts"
+              ></textarea>
+              <button class="btn btnPrimary" type="submit" :disabled="reviewSubmittingId === order.id || !reviewForm(order).rating">
+                {{ reviewSubmittingId === order.id ? 'Iesniedz...' : 'Iesniegt atsauksmi' }}
+              </button>
+              <div class="msg mt12" v-if="reviewMessageId === order.id && reviewError">{{ reviewError }}</div>
+              <div class="msg ok mt12" v-else-if="reviewMessageId === order.id && reviewSuccess">{{ reviewSuccess }}</div>
+            </form>
+
+            <div v-else class="paymentUnavailable">
+              Atsauksmi varēs atstāt pēc pasūtījuma pabeigšanas.
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -416,6 +471,11 @@ const payingId = ref(null)
 const paymentError = ref('')
 const paymentSuccess = ref('')
 const paymentMessageId = ref(null)
+const reviewForms = ref({})
+const reviewSubmittingId = ref(null)
+const reviewError = ref('')
+const reviewSuccess = ref('')
+const reviewMessageId = ref(null)
 
 const isDeviceModalOpen = ref(false)
 const deviceSaving = ref(false)
@@ -568,6 +628,26 @@ function hasMoreOrderItems(order) {
 
 function isOrderPaid(order) {
   return order.payment?.status === 'paid' || order.status === 'done'
+}
+
+function canReviewOrder(order) {
+  return order.status === 'done' && order.payment?.status === 'paid'
+}
+
+function reviewForm(order) {
+  if (!reviewForms.value[order.id]) {
+    reviewForms.value[order.id] = {
+      rating: 0,
+      comment: '',
+    }
+  }
+
+  return reviewForms.value[order.id]
+}
+
+function starText(rating) {
+  const value = Math.max(0, Math.min(5, Number(rating || 0)))
+  return '★'.repeat(value) + '☆'.repeat(5 - value)
 }
 
 function replaceOrder(updatedOrder) {
@@ -935,6 +1015,45 @@ async function payOrder(order) {
     paymentError.value = (error?.message || 'Neizdevās apmaksāt pasūtījumu.').slice(0, 260)
   } finally {
     payingId.value = null
+  }
+}
+
+async function submitReview(order) {
+  const formState = reviewForm(order)
+  reviewSubmittingId.value = order.id
+  reviewMessageId.value = order.id
+  reviewError.value = ''
+  reviewSuccess.value = ''
+
+  try {
+    const response = await authFetch(`/api/my/orders/${order.id}/review`, {
+      method: 'POST',
+      json: {
+        rating: formState.rating,
+        comment: formState.comment || null,
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        await redirectByRole()
+        return
+      }
+
+      throw new Error(await extractErrorMessage(response, 'Neizdevās iesniegt atsauksmi.'))
+    }
+
+    const review = await response.json()
+    replaceOrder({
+      ...order,
+      review,
+    })
+    reviewForms.value[order.id] = { rating: 0, comment: '' }
+    reviewSuccess.value = 'Paldies! Atsauksme iesniegta.'
+  } catch (error) {
+    reviewError.value = (error?.message || 'Neizdevās iesniegt atsauksmi.').slice(0, 260)
+  } finally {
+    reviewSubmittingId.value = null
   }
 }
 
@@ -2104,7 +2223,8 @@ onMounted(async () => {
   gap: 12px;
 }
 
-.paymentBox {
+.paymentBox,
+.reviewBox {
   margin-top: 18px;
   padding: 16px;
   background: #f8fafc;
@@ -2190,6 +2310,68 @@ onMounted(async () => {
 .payButton {
   min-width: 132px;
   justify-content: center;
+}
+
+.reviewCard,
+.reviewForm {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.reviewTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reviewLabel {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.stars {
+  margin-top: 4px;
+  color: #f59e0b;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+
+.reviewComment {
+  margin: 0;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.ratingButtons {
+  display: flex;
+  gap: 4px;
+}
+
+.starButton {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d8e0eb;
+  border-radius: 12px;
+  color: #94a3b8;
+  background: #fff;
+  cursor: pointer;
+  font-size: 20px;
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.starButton:hover,
+.starButton.active {
+  color: #f59e0b;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.reviewTextarea {
+  min-height: 92px;
 }
 
 .orderItems.compact {
