@@ -29,7 +29,7 @@
     </div>
 
     <div v-else-if="orders.length === 0" class="card">
-      <div class="muted">Tev vēl nav piešķirtu pasūtījumu.</div>
+      <div class="muted">Pašlaik nav aktīvu pieņemto pasūtījumu.</div>
     </div>
 
     <div v-else class="orderStack">
@@ -167,6 +167,7 @@
           </div>
 
           <div class="actions">
+            <RouterLink class="btn" :to="`/staff/orders/${order.id}`">Atvērt</RouterLink>
             <button class="btn btnPrimary" type="button" @click="saveOrder(order.id)" :disabled="savingId === order.id">
               {{ savingId === order.id ? 'Saglabā...' : 'Saglabāt' }}
             </button>

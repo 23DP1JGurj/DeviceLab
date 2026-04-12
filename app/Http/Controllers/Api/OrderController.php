@@ -18,6 +18,19 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    private const STAFF_ACTIVE_STATUSES = [
+        'confirmed',
+        'diagnostics',
+        'in_progress',
+        'waiting_parts',
+        'ready',
+    ];
+
+    private const HISTORY_STATUSES = [
+        'done',
+        'cancelled',
+    ];
+
     public function clientIndex(Request $request)
     {
         return $this->buildOrdersQuery($request, $request->user(), true)->latest()->paginate(10);
@@ -40,20 +53,21 @@ class OrderController extends Controller
     {
         return $this->buildOrdersQuery($request, $request->user())
             ->where('assigned_staff_id', $request->user()->id)
-            ->latest()
+            ->whereIn('status', self::STAFF_ACTIVE_STATUSES)
+            ->latest('updated_at')
             ->paginate(10);
     }
 
     public function staffHistory(Request $request)
     {
         $query = $this->buildOrdersQuery($request, $request->user())
-            ->whereIn('status', ['done', 'cancelled']);
+            ->whereIn('status', self::HISTORY_STATUSES);
 
         if ($request->user()->hasRole(User::ROLE_STAFF)) {
             $query->where('assigned_staff_id', $request->user()->id);
         }
 
-        return $query->latest()->paginate(10);
+        return $query->latest('updated_at')->paginate(10);
     }
 
     public function myOrders(Request $request)

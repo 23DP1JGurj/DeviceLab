@@ -43,6 +43,10 @@
           <span class="chip">Darbinieks: {{ order.assigned_staff?.name || 'nav piešķirts' }}</span>
           <span v-if="order.review" class="chip">Atsauksme: {{ starText(order.review.rating) }}</span>
         </div>
+
+        <div class="chips">
+          <RouterLink class="btn" :to="`/admin/orders/${order.id}`">Atvērt</RouterLink>
+        </div>
       </article>
     </div>
   </div>

@@ -41,6 +41,23 @@ class AdminController extends Controller
             ->paginate(20);
     }
 
+    public function showOrder(Order $order)
+    {
+        return $order->load([
+            'user:id,name,email,phone',
+            'branch:id,name,address',
+            'device:id,type,component_type,brand,model,specs,serial_number',
+            'assignedStaff:id,name,email,phone,specialization',
+            'payment:id,order_id,user_id,amount,status,paid_at,method',
+            'review.user:id,name,email',
+            'review.branch:id,name,address',
+            'review.staff:id,name,email,specialization',
+            'items.service:id,name,base_price',
+            'items.part:id,name,unit_price',
+            'statusHistory.changedBy:id,name,email',
+        ]);
+    }
+
     public function clients()
     {
         return User::query()

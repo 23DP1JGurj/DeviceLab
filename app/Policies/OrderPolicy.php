@@ -9,8 +9,12 @@ class OrderPolicy
 {
     public function view(User $user, Order $order): bool
     {
-        if ($user->hasAnyRole([User::ROLE_STAFF, User::ROLE_ADMIN])) {
+        if ($user->hasRole(User::ROLE_ADMIN)) {
             return true;
+        }
+
+        if ($user->hasRole(User::ROLE_STAFF)) {
+            return $order->assigned_staff_id === null || $order->assigned_staff_id === $user->id;
         }
 
         return $order->user_id === $user->id;

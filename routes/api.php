@@ -99,6 +99,7 @@ Route::prefix('admin')
     ->group(function () {
         Route::get('/summary', [AdminController::class, 'summary']);
         Route::get('/orders', [AdminController::class, 'orders']);
+        Route::get('/orders/{order}', [AdminController::class, 'showOrder']);
         Route::get('/clients', [AdminController::class, 'clients']);
         Route::get('/staff', [AdminController::class, 'staff']);
         Route::get('/reviews', [AdminController::class, 'reviews']);

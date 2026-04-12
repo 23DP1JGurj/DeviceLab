@@ -59,19 +59,8 @@
           <span class="chip chipUnassigned">Nav piešķirts</span>
         </div>
 
-        <div class="itemsBlock">
-          <div class="subTitle">Pozīcijas</div>
-          <div class="itemList">
-            <div class="itemLine" v-for="item in order.items" :key="item.id">
-              <span class="itemKind">{{ item.item_type === 'service' ? 'pakalpojums' : 'detaļa' }}</span>
-              <span class="itemName">{{ itemName(item) }}</span>
-              <span class="itemPrice">{{ item.quantity }} × {{ formatMoney(item.unit_price) }}</span>
-              <strong>{{ formatMoney(item.line_total) }}</strong>
-            </div>
-          </div>
-        </div>
-
         <div class="actions">
+          <RouterLink class="btn" :to="`/staff/orders/${order.id}`">Atvērt</RouterLink>
           <button class="btn btnPrimary" type="button" @click="claimOrder(order.id)" :disabled="claimingId === order.id">
             {{ claimingId === order.id ? 'Pieņem...' : 'Pieņemt pasūtījumu' }}
           </button>
