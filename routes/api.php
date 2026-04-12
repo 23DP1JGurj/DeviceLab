@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\DeviceCatalogController;
 use App\Http\Controllers\Api\MyDeviceController;
 use App\Http\Controllers\Api\OrderController;
@@ -91,4 +92,14 @@ Route::prefix('staff')
         Route::post('/orders/{order}/items', [OrderController::class, 'storeItem']);
         Route::patch('/orders/{order}/items/{item}', [OrderController::class, 'updateItem']);
         Route::delete('/orders/{order}/items/{item}', [OrderController::class, 'destroyItem']);
+    });
+
+Route::prefix('admin')
+    ->middleware(array_merge($sessionMiddleware, ['auth', 'role:admin']))
+    ->group(function () {
+        Route::get('/summary', [AdminController::class, 'summary']);
+        Route::get('/orders', [AdminController::class, 'orders']);
+        Route::get('/clients', [AdminController::class, 'clients']);
+        Route::get('/staff', [AdminController::class, 'staff']);
+        Route::get('/reviews', [AdminController::class, 'reviews']);
     });

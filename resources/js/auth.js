@@ -48,6 +48,7 @@ export function sanitizeRedirectPath(value) {
 }
 
 export function defaultRouteForUser(user) {
+  if (user?.role === 'admin') return '/admin'
   return hasAnyRole(user, STAFF_ROLES) ? '/staff/orders/new' : '/orders/new'
 }
 
@@ -59,6 +60,10 @@ export function resolveRedirectPath(user, redirect) {
   const safeRedirect = sanitizeRedirectPath(redirect)
 
   if (!safeRedirect) {
+    return defaultRouteForUser(user)
+  }
+
+  if (safeRedirect.startsWith('/admin') && user.role !== 'admin') {
     return defaultRouteForUser(user)
   }
 

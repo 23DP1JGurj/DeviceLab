@@ -517,21 +517,15 @@ const deviceForm = reactive({
 const requestTypes = [
   {
     value: 'general',
-    kicker: 'Universāli',
     title: 'Vispārīgs servisa pieteikums',
-    description: 'Apraksti jebkuru ierīces problēmu.',
   },
   {
     value: 'screen_battery',
-    kicker: 'Populārs remonts',
     title: 'Ekrāna vai akumulatora maiņa',
-    description: 'Ātra pieteikšana biežākajiem remontiem.',
   },
   {
     value: 'quick_diagnostics',
-    kicker: 'Ātri',
     title: 'Ātrā diagnostika',
-    description: 'Pārbaude un servisa rekomendācija.',
   },
 ]
 
@@ -1734,13 +1728,6 @@ onMounted(async () => {
   color: #071833;
   font-size: 20px;
   font-weight: 900;
-}
-
-.summaryText {
-  margin-top: 6px;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.55;
 }
 
 .summaryList {

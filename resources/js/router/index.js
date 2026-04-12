@@ -1,4 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import AdminClients from '../components/AdminClients.vue'
+import AdminDashboard from '../components/AdminDashboard.vue'
+import AdminOrders from '../components/AdminOrders.vue'
+import AdminReviews from '../components/AdminReviews.vue'
+import AdminStaff from '../components/AdminStaff.vue'
 import Home from '../components/Home.vue'
 import ClientNewOrder from '../components/ClientNewOrder.vue'
 import ClientOrderHistory from '../components/ClientOrderHistory.vue'
@@ -24,6 +29,11 @@ const routes = [
   { path: '/', component: Home },
   { path: '/login', component: Login, meta: { guestOnly: true } },
   { path: '/register', component: Register, meta: { guestOnly: true } },
+  { path: '/admin', component: AdminDashboard, meta: { requiresAuth: true, roles: ['admin'] } },
+  { path: '/admin/orders', component: AdminOrders, meta: { requiresAuth: true, roles: ['admin'] } },
+  { path: '/admin/clients', component: AdminClients, meta: { requiresAuth: true, roles: ['admin'] } },
+  { path: '/admin/staff', component: AdminStaff, meta: { requiresAuth: true, roles: ['admin'] } },
+  { path: '/admin/reviews', component: AdminReviews, meta: { requiresAuth: true, roles: ['admin'] } },
   { path: '/devices', component: MyDevices, meta: { requiresAuth: true, roles: ['client'] } },
   { path: '/orders', redirect: '/orders/new' },
   { path: '/orders/new', component: ClientNewOrder, meta: { requiresAuth: true, roles: CLIENT_ROLES } },

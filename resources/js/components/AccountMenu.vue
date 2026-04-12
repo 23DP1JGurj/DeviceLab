@@ -33,6 +33,15 @@
           <RouterLink class="accItem" to="/register" @click="closeMenu">Reģistrēties</RouterLink>
         </template>
 
+        <template v-else-if="isAdmin">
+          <RouterLink class="accItem" to="/admin" @click="closeMenu">Admin panelis</RouterLink>
+          <RouterLink class="accItem" to="/admin/orders" @click="closeMenu">Visi pasūtījumi</RouterLink>
+          <RouterLink class="accItem" to="/admin/clients" @click="closeMenu">Klienti</RouterLink>
+          <RouterLink class="accItem" to="/admin/staff" @click="closeMenu">Darbinieki</RouterLink>
+          <RouterLink class="accItem" to="/admin/reviews" @click="closeMenu">Atsauksmes</RouterLink>
+          <RouterLink class="accItem" to="/profile" @click="closeMenu">Profils</RouterLink>
+        </template>
+
         <template v-else>
           <RouterLink class="accItem" to="/profile" @click="closeMenu">Profils</RouterLink>
           <RouterLink v-if="isClient" class="accItem" to="/devices" @click="closeMenu">
