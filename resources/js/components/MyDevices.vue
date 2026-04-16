@@ -129,7 +129,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import AutocompleteInput from './AutocompleteInput.vue'
 import { authFetch, extractErrorMessage, initAuth } from '../auth'
-import { fetchDeviceBrands, fetchDeviceModels } from '../deviceCatalog'
+import { fetchDeviceBrands, fetchDeviceModelsByType } from '../deviceCatalog'
 import { formatDevice } from '../deviceFormat'
 
 const router = useRouter()
@@ -146,6 +146,8 @@ const deletingId = ref(null)
 const deleteError = ref('')
 const brandSuggestions = ref([])
 const modelSuggestions = ref([])
+let brandSuggestionsTimer = null
+let modelSuggestionsTimer = null
 
 const form = reactive({
   type: 'phone',
@@ -263,11 +265,17 @@ async function deleteDevice(device) {
 }
 
 async function loadBrandSuggestions() {
-  brandSuggestions.value = await fetchDeviceBrands(form.brand)
+  clearTimeout(brandSuggestionsTimer)
+  brandSuggestionsTimer = setTimeout(async () => {
+    brandSuggestions.value = await fetchDeviceBrands(form.type, form.brand)
+  }, 250)
 }
 
 async function loadModelSuggestions() {
-  modelSuggestions.value = await fetchDeviceModels(form.brand, form.model)
+  clearTimeout(modelSuggestionsTimer)
+  modelSuggestionsTimer = setTimeout(async () => {
+    modelSuggestions.value = await fetchDeviceModelsByType(form.type, form.brand, form.model)
+  }, 250)
 }
 
 watch(
@@ -275,14 +283,24 @@ watch(
   async () => {
     form.model = ''
     modelSuggestions.value = []
-    await loadBrandSuggestions()
-    await loadModelSuggestions()
+    loadBrandSuggestions()
+    loadModelSuggestions()
+  },
+)
+
+watch(
+  () => form.type,
+  () => {
+    brandSuggestions.value = []
+    modelSuggestions.value = []
+    loadBrandSuggestions()
+    loadModelSuggestions()
   },
 )
 
 onMounted(async () => {
   await initAuth().catch(() => null)
-  await loadBrandSuggestions()
+  loadBrandSuggestions()
   await loadDevices()
 })
 </script>

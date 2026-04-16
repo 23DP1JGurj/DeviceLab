@@ -308,7 +308,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import AutocompleteInput from './AutocompleteInput.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
-import { fetchDeviceBrands, fetchDeviceModels } from '../deviceCatalog'
+import { fetchDeviceBrands, fetchDeviceModelsByType } from '../deviceCatalog'
 import { formatDevice } from '../deviceFormat'
 import { statusLabel } from '../orderStatus'
 import OrderStatusTimeline from './OrderStatusTimeline.vue'
@@ -361,6 +361,8 @@ const deviceSaving = ref(false)
 const deviceErrors = ref([])
 const brandSuggestions = ref([])
 const modelSuggestions = ref([])
+let brandSuggestionsTimer = null
+let modelSuggestionsTimer = null
 const deviceSelectValue = computed({
   get() {
     return form.device_id ? String(form.device_id) : ''
@@ -983,11 +985,17 @@ async function saveDevice() {
 }
 
 async function loadBrandSuggestions() {
-  brandSuggestions.value = await fetchDeviceBrands(deviceForm.brand)
+  clearTimeout(brandSuggestionsTimer)
+  brandSuggestionsTimer = setTimeout(async () => {
+    brandSuggestions.value = await fetchDeviceBrands(deviceForm.type, deviceForm.brand)
+  }, 250)
 }
 
 async function loadModelSuggestions() {
-  modelSuggestions.value = await fetchDeviceModels(deviceForm.brand, deviceForm.model)
+  clearTimeout(modelSuggestionsTimer)
+  modelSuggestionsTimer = setTimeout(async () => {
+    modelSuggestions.value = await fetchDeviceModelsByType(deviceForm.type, deviceForm.brand, deviceForm.model)
+  }, 250)
 }
 
 watch(
@@ -995,8 +1003,18 @@ watch(
   async () => {
     deviceForm.model = ''
     modelSuggestions.value = []
-    await loadBrandSuggestions()
-    await loadModelSuggestions()
+    loadBrandSuggestions()
+    loadModelSuggestions()
+  },
+)
+
+watch(
+  () => deviceForm.type,
+  () => {
+    brandSuggestions.value = []
+    modelSuggestions.value = []
+    loadBrandSuggestions()
+    loadModelSuggestions()
   },
 )
 

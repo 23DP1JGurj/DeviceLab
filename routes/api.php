@@ -52,6 +52,7 @@ Route::get('/parts', fn () => Part::query()
 
 Route::get('/device-brands', [DeviceCatalogController::class, 'brands']);
 Route::get('/device-models', [DeviceCatalogController::class, 'models']);
+Route::get('/device-model-suggestions', [DeviceCatalogController::class, 'suggestions']);
 
 Route::prefix('my')
     ->middleware(array_merge($sessionMiddleware, ['auth', 'role:client']))

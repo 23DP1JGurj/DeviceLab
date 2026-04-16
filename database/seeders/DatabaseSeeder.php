@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             DemoSeeder::class,
             StaffDemoSeeder::class,
             PhoneModelSeeder::class,
+            DeviceModelSuggestionSeeder::class,
         ]);
     }
 }
