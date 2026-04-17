@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\DeviceCatalogController;
 use App\Http\Controllers\Api\MyDeviceController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OrderAttachmentController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Models\Branch;
@@ -73,6 +74,9 @@ Route::prefix('my')
         Route::get('/orders', [OrderController::class, 'clientIndex']);
         Route::post('/orders', [OrderController::class, 'store']);
         Route::get('/orders/history', [OrderController::class, 'clientIndex']);
+        Route::get('/orders/{order}/attachments', [OrderAttachmentController::class, 'clientIndex']);
+        Route::post('/orders/{order}/attachments', [OrderAttachmentController::class, 'store']);
+        Route::delete('/orders/{order}/attachments/{attachment}', [OrderAttachmentController::class, 'destroy']);
         Route::get('/orders/{order}/payment', [OrderController::class, 'payment']);
         Route::post('/orders/{order}/pay', [OrderController::class, 'pay']);
         Route::post('/orders/{order}/review', [ReviewController::class, 'store']);
@@ -96,6 +100,7 @@ Route::prefix('staff')
         Route::get('/orders/my', [OrderController::class, 'assignedToMe']);
         Route::get('/orders/history', [OrderController::class, 'staffHistory']);
         Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}/attachments', [OrderAttachmentController::class, 'staffIndex']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/claim', [OrderController::class, 'claim']);
         Route::patch('/orders/{order}', [OrderController::class, 'update']);

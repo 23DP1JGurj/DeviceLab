@@ -95,6 +95,35 @@
         </div>
 
         <div class="formSection">
+          <div class="sectionEyebrow">Ierīces fotoattēli</div>
+          <div class="photoHint">Varat pievienot līdz 5 fotoattēliem, lai darbinieks labāk saprastu bojājumu.</div>
+
+          <label class="photoDrop">
+            <input
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/webp"
+              @change="handlePhotoInput"
+            />
+            <span>Izvēlēties fotoattēlus</span>
+            <small>JPG, PNG vai WEBP līdz 5 MB katrs</small>
+          </label>
+
+          <div v-if="photoError" class="msg mt12">{{ photoError }}</div>
+
+          <div v-if="selectedPhotos.length > 0" class="photoPreviewGrid">
+            <article class="photoPreview" v-for="photo in selectedPhotos" :key="photo.id">
+              <img :src="photo.previewUrl" :alt="photo.file.name" />
+              <div class="photoMeta">
+                <strong>{{ photo.file.name }}</strong>
+                <span>{{ formatFileSize(photo.file.size) }}</span>
+              </div>
+              <button class="photoRemove" type="button" @click="removeSelectedPhoto(photo.id)">×</button>
+            </article>
+          </div>
+        </div>
+
+        <div class="formSection">
           <div class="sectionEyebrow">Pozīcijas</div>
 
           <div class="lineItems">
@@ -303,7 +332,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import AutocompleteInput from './AutocompleteInput.vue'
@@ -345,6 +374,8 @@ const metaError = ref('')
 const creating = ref(false)
 const createError = ref('')
 const createSuccess = ref('')
+const photoError = ref('')
+const selectedPhotos = ref([])
 const expandedOrderIds = ref([])
 const payingId = ref(null)
 const paymentError = ref('')
@@ -474,6 +505,67 @@ const selectedDevice = computed(() => (
 function formatMoney(value) {
   const amount = Number(value || 0)
   return `${amount.toFixed(2)} €`
+}
+
+function formatFileSize(bytes) {
+  const size = Number(bytes || 0)
+
+  if (size < 1024 * 1024) {
+    return `${Math.max(1, Math.round(size / 1024))} KB`
+  }
+
+  return `${(size / 1024 / 1024).toFixed(1)} MB`
+}
+
+function revokePhotoPreview(photo) {
+  if (photo?.previewUrl) {
+    URL.revokeObjectURL(photo.previewUrl)
+  }
+}
+
+function clearSelectedPhotos() {
+  selectedPhotos.value.forEach(revokePhotoPreview)
+  selectedPhotos.value = []
+  photoError.value = ''
+}
+
+function handlePhotoInput(event) {
+  photoError.value = ''
+  const files = Array.from(event.target.files || [])
+  event.target.value = ''
+
+  if (selectedPhotos.value.length + files.length > 5) {
+    photoError.value = 'Var pievienot ne vairāk kā 5 fotoattēlus.'
+    return
+  }
+
+  const nextPhotos = []
+
+  for (const file of files) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      photoError.value = 'Var pievienot tikai JPG, PNG vai WEBP attēlus.'
+      continue
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      photoError.value = 'Katrs fotoattēls drīkst būt līdz 5 MB.'
+      continue
+    }
+
+    nextPhotos.push({
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      file,
+      previewUrl: URL.createObjectURL(file),
+    })
+  }
+
+  selectedPhotos.value = [...selectedPhotos.value, ...nextPhotos].slice(0, 5)
+}
+
+function removeSelectedPhoto(photoId) {
+  const photo = selectedPhotos.value.find(item => item.id === photoId)
+  revokePhotoPreview(photo)
+  selectedPhotos.value = selectedPhotos.value.filter(item => item.id !== photoId)
 }
 
 function itemName(item) {
@@ -813,6 +905,7 @@ async function createOrder() {
   creating.value = true
   createError.value = ''
   createSuccess.value = ''
+  photoError.value = ''
 
   try {
     if (!form.branch_id) {
@@ -850,8 +943,20 @@ async function createOrder() {
     }
 
     const created = await response.json()
+    let uploadWarning = ''
+
+    if (selectedPhotos.value.length > 0) {
+      try {
+        await uploadOrderPhotos(created.id)
+        clearSelectedPhotos()
+      } catch (uploadError) {
+        uploadWarning = ' Pieteikums izveidots, bet foto neizdevās augšupielādēt.'
+        photoError.value = (uploadError?.message || 'Foto neizdevās augšupielādēt.').slice(0, 260)
+      }
+    }
+
     localStorage.removeItem(ORDER_DRAFT_STORAGE_KEY)
-    createSuccess.value = `Izveidots: ${created.order_number}`
+    createSuccess.value = `Izveidots: ${created.order_number}.${uploadWarning}`
     form.problem_description = ''
     if (showHistory.value) {
       await loadOrders()
@@ -861,6 +966,25 @@ async function createOrder() {
   } finally {
     creating.value = false
   }
+}
+
+async function uploadOrderPhotos(orderId) {
+  const formData = new FormData()
+
+  selectedPhotos.value.forEach(photo => {
+    formData.append('photos[]', photo.file)
+  })
+
+  const response = await authFetch(`/api/my/orders/${orderId}/attachments`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response, 'Foto neizdevās augšupielādēt.'))
+  }
+
+  return response.json()
 }
 
 async function payOrder(order) {
@@ -1029,6 +1153,10 @@ onMounted(async () => {
   if (showHistory.value) {
     await loadOrders()
   }
+})
+
+onBeforeUnmount(() => {
+  clearSelectedPhotos()
 })
 </script>
 
@@ -1971,6 +2099,108 @@ onMounted(async () => {
 .lineItems {
   display: grid;
   gap: 10px;
+}
+
+.photoHint {
+  margin-top: -6px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.photoDrop {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 18px;
+  color: #1d4ed8;
+  background: #f8fbff;
+  border: 1px dashed #93c5fd;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.photoDrop:hover {
+  background: #f1f7ff;
+  border-color: #2f7cff;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.08);
+}
+
+.photoDrop input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.photoDrop span {
+  font-weight: 900;
+}
+
+.photoDrop small {
+  color: #64748b;
+}
+
+.photoPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.photoPreview {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.photoPreview img {
+  width: 100%;
+  height: 112px;
+  object-fit: cover;
+  display: block;
+  background: #f1f5f9;
+}
+
+.photoMeta {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.photoMeta strong {
+  overflow: hidden;
+  color: #071833;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.photoMeta span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.photoRemove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  border-radius: 999px;
+  color: #b91c1c;
+  background: rgba(255, 255, 255, 0.94);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .lineItemCard {

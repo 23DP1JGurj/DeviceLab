@@ -55,6 +55,11 @@ class Order extends Model
         return $this->hasOne(Review::class);
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(OrderAttachment::class)->latest();
+    }
+
     public function notifications(): HasMany
     {
         return $this->hasMany(UserNotification::class);

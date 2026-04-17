@@ -44,6 +44,24 @@
       <section class="contentGrid">
         <div class="mainStack">
           <div class="card">
+            <div class="sectionTitle">Pievienotie fotoattēli</div>
+            <div v-if="(order.attachments || []).length === 0" class="muted mt12">Fotoattēli nav pievienoti.</div>
+            <div v-else class="attachmentGrid">
+              <a
+                v-for="attachment in order.attachments"
+                :key="attachment.id"
+                class="attachmentThumb"
+                :href="attachment.url"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img :src="attachment.url" :alt="attachment.original_name || 'Ierīces fotoattēls'" />
+                <span>{{ attachment.original_name || 'Fotoattēls' }}</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="card">
             <div class="sectionTitle">Pakalpojumi un detaļas</div>
             <div v-if="(order.items || []).length === 0" class="muted mt12">Pozīciju vēl nav.</div>
             <div v-else class="itemList">
@@ -259,6 +277,11 @@ onMounted(loadOrder)
 .mainStack, .sideStack { display: grid; align-content: start; gap: 14px; }
 .sectionTitle { font-size: 18px; font-weight: 900; }
 .mt12 { margin-top: 12px; }
+.attachmentGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 14px; }
+.attachmentThumb { overflow: hidden; color: #0f172a; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; text-decoration: none; transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
+.attachmentThumb:hover { transform: translateY(-1px); border-color: #93c5fd; box-shadow: 0 12px 26px rgba(15,23,42,.08); }
+.attachmentThumb img { display: block; width: 100%; height: 120px; object-fit: cover; background: #f1f5f9; }
+.attachmentThumb span { display: block; overflow: hidden; padding: 9px 10px; color: #334155; font-size: 12px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .itemList { display: grid; gap: 8px; margin-top: 14px; }
 .itemLine { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 12px; padding: 11px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
 .itemKind { color: #2563eb; font-size: 12px; font-weight: 900; }

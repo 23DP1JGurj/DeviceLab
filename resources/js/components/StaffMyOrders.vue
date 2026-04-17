@@ -60,6 +60,24 @@
           </span>
         </div>
 
+        <div class="attachmentsBlock">
+          <div class="subTitle">Pievienotie fotoattēli</div>
+          <div v-if="(order.attachments || []).length === 0" class="muted mt8">Fotoattēli nav pievienoti.</div>
+          <div v-else class="attachmentGrid">
+            <a
+              v-for="attachment in order.attachments"
+              :key="attachment.id"
+              class="attachmentThumb"
+              :href="attachment.url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img :src="attachment.url" :alt="attachment.original_name || 'Ierīces fotoattēls'" />
+              <span>{{ attachment.original_name || 'Fotoattēls' }}</span>
+            </a>
+          </div>
+        </div>
+
         <div class="itemsBlock">
           <div class="itemsBlockHead">
             <div>
@@ -570,6 +588,13 @@ onMounted(async () => {
 .chipAssigned { background: #ecfdf5; border-color: #bbf7d0; color: #166534; }
 .chipPaid { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
 .chipUnpaid { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+.attachmentsBlock { margin-top: 16px; padding: 16px; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 18px; background: #fff; }
+.mt8 { margin-top: 8px; }
+.attachmentGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; margin-top: 12px; }
+.attachmentThumb { overflow: hidden; color: #0f172a; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; text-decoration: none; transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
+.attachmentThumb:hover { transform: translateY(-1px); border-color: #93c5fd; box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08); }
+.attachmentThumb img { display: block; width: 100%; height: 104px; object-fit: cover; background: #f1f5f9; }
+.attachmentThumb span { display: block; overflow: hidden; padding: 8px 10px; color: #334155; font-size: 12px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .itemsBlock { margin-top: 16px; padding: 16px; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 18px; background: #fff; }
 .itemsBlockHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
 .itemsTotal { color: #0f172a; font-size: 22px; font-weight: 900; white-space: nowrap; }

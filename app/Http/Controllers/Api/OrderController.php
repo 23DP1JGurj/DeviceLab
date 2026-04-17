@@ -537,6 +537,7 @@ class OrderController extends Controller
             'review.user:id,name,email',
             'review.branch:id,name,address',
             'review.staff:id,name,email,specialization',
+            'attachments:id,order_id,user_id,file_path,original_name,mime_type,file_size,created_at',
         ]);
 
         if ($forceOwnOrders || $user->hasRole(User::ROLE_CLIENT)) {
@@ -573,6 +574,7 @@ class OrderController extends Controller
             'review.user:id,name,email',
             'review.branch:id,name,address',
             'review.staff:id,name,email,specialization',
+            'attachments:id,order_id,user_id,file_path,original_name,mime_type,file_size,created_at',
         ]);
     }
 

@@ -36,6 +36,7 @@ class AdminController extends Controller
                 'review:id,order_id,user_id,branch_id,staff_id,rating,comment,created_at',
                 'items.service:id,name,base_price',
                 'items.part:id,name,unit_price',
+                'attachments:id,order_id,user_id,file_path,original_name,mime_type,file_size,created_at',
             ])
             ->latest()
             ->paginate(20);
@@ -55,6 +56,7 @@ class AdminController extends Controller
             'items.service:id,name,base_price',
             'items.part:id,name,unit_price',
             'statusHistory.changedBy:id,name,email',
+            'attachments:id,order_id,user_id,file_path,original_name,mime_type,file_size,created_at',
         ]);
     }
 
