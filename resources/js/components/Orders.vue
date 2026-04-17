@@ -69,7 +69,7 @@
             <input class="control" v-model.number="it.quantity" type="number" min="1" placeholder="qty" />
 
             <button class="btnIcon btnDangerSoft" type="button" @click="removeItem(idx)" title="Remove">
-              вњ•
+              ×
             </button>
           </div>
         </div>
@@ -146,7 +146,7 @@
               <span class="badge" :class="'st_' + o.status">{{ o.status }}</span>
             </div>
 
-            <div class="muted">{{ o.problem_description || 'вЂ”' }}</div>
+            <div class="muted">{{ o.problem_description || '—' }}</div>
 
             <div class="chips">
               <span class="chip">ID: {{ o.id }}</span>
@@ -158,7 +158,7 @@
 
           <div class="cost">
             <div class="muted small">Final cost</div>
-            <div class="costValue">{{ o.final_cost ?? 'вЂ”' }}</div>
+            <div class="costValue">{{ o.final_cost ?? '—' }}</div>
           </div>
         </div>
 
@@ -174,7 +174,7 @@
               <template v-else>
                 <b>part:</b> {{ it.part?.name || ('#' + it.part_id) }}
               </template>
-              вЂ” {{ it.quantity }} Г— {{ it.unit_price }} = <b>{{ it.line_total }}</b>
+              — {{ it.quantity }} × {{ it.unit_price }} = <b>{{ it.line_total }}</b>
             </li>
           </ul>
         </div>
@@ -223,7 +223,7 @@
             </button>
 
             <div class="msg" v-if="saveError && saveErrorId === o.id">{{ saveError }}</div>
-            <div class="msg ok" v-else-if="saveOkId === o.id">Saved вњ…</div>
+            <div class="msg ok" v-else-if="saveOkId === o.id">Saved ✓</div>
           </div>
         </div>
       </div>
@@ -255,7 +255,7 @@ const saveOkId = ref(null)
 const form = reactive({
   branch_id: 1,
   device_id: 1,
-  problem_description: 'NeieslД“dzas',
+  problem_description: 'Neieslēdzas',
   items: [
     { item_type: 'service', service_id: 1, part_id: null, quantity: 1 },
     { item_type: 'part', service_id: null, part_id: 1, quantity: 1 },
@@ -492,7 +492,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* IMPORTANT: fixes "РІС‹Р»Р°Р·РёС‚ РёР· Р±РѕРєСЃР°" РІ grid */
+/* Keep grid children from overflowing their cards. */
 :global(*), :global(*::before), :global(*::after) { box-sizing: border-box; }
 :global(body) {
   margin: 0;
