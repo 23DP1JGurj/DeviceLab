@@ -7,12 +7,17 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Review;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ReviewController extends Controller
 {
+    public function __construct(private NotificationService $notifications)
+    {
+    }
+
     public function store(Request $request, Order $order)
     {
         $user = $request->user();
@@ -56,6 +61,24 @@ class ReviewController extends Controller
                 'rating' => (int) $data['rating'],
                 'comment' => $data['comment'] ?? null,
             ]);
+
+            $recipientIds = User::query()
+                ->where('role', User::ROLE_ADMIN)
+                ->pluck('id')
+                ->all();
+
+            if ($lockedOrder->assigned_staff_id) {
+                $recipientIds[] = $lockedOrder->assigned_staff_id;
+            }
+
+            $this->notifications->notifyMany(
+                $recipientIds,
+                'review_created',
+                'Jauna atsauksme',
+                "Klients atstāja atsauksmi par pasūtījumu {$lockedOrder->order_number}.",
+                $lockedOrder,
+                ['rating' => (int) $data['rating']]
+            );
 
             return response()->json(
                 $review->load([

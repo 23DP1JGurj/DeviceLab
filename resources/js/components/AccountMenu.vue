@@ -69,6 +69,11 @@
             Atsauksmes
           </RouterLink>
         </template>
+
+        <RouterLink v-if="!isGuest" class="accItem accItem--notify" to="/notifications" @click="closeMenu">
+          <span>Paziņojumi</span>
+          <span v-if="unreadCount > 0" class="accBadge">{{ unreadCount }}</span>
+        </RouterLink>
       </div>
 
       <div v-if="!isGuest" class="accFooter">
@@ -79,9 +84,9 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { currentUser, hasAnyRole, logout } from '../auth'
+import { authFetch, currentUser, hasAnyRole, logout } from '../auth'
 
 defineProps({
   variant: {
@@ -94,6 +99,7 @@ const router = useRouter()
 const wrap = ref(null)
 const isOpen = ref(false)
 const supportsHover = ref(false)
+const unreadCount = ref(0)
 
 const isGuest = computed(() => !currentUser.value)
 const isStaff = computed(() => hasAnyRole(currentUser.value, ['staff', 'admin']))
@@ -106,6 +112,7 @@ let mediaQuery = null
 let mediaQueryHandler = null
 let onDocumentPointerDown = null
 let onWindowKeydown = null
+let onNotificationsUpdated = null
 
 function syncHoverCapability() {
   supportsHover.value = Boolean(mediaQuery?.matches)
@@ -118,6 +125,27 @@ function closeMenu() {
   isOpen.value = false
 }
 
+async function loadUnreadCount() {
+  if (!currentUser.value) {
+    unreadCount.value = 0
+    return
+  }
+
+  try {
+    const response = await authFetch('/api/notifications/unread-count')
+
+    if (!response.ok) {
+      unreadCount.value = 0
+      return
+    }
+
+    const json = await response.json()
+    unreadCount.value = Number(json.unread_count || 0)
+  } catch {
+    unreadCount.value = 0
+  }
+}
+
 function handleTriggerClick() {
   if (supportsHover.value) return
   isOpen.value = !isOpen.value
@@ -125,6 +153,7 @@ function handleTriggerClick() {
 
 async function handleLogout() {
   await logout()
+  unreadCount.value = 0
   closeMenu()
   await router.push('/')
 }
@@ -152,8 +181,16 @@ onMounted(() => {
     }
   }
 
+  onNotificationsUpdated = () => loadUnreadCount()
+
   document.addEventListener('pointerdown', onDocumentPointerDown)
   window.addEventListener('keydown', onWindowKeydown)
+  window.addEventListener('devicelab:notifications-updated', onNotificationsUpdated)
+  loadUnreadCount()
+})
+
+watch(currentUser, () => {
+  loadUnreadCount()
 })
 
 onBeforeUnmount(() => {
@@ -171,6 +208,10 @@ onBeforeUnmount(() => {
 
   if (onWindowKeydown) {
     window.removeEventListener('keydown', onWindowKeydown)
+  }
+
+  if (onNotificationsUpdated) {
+    window.removeEventListener('devicelab:notifications-updated', onNotificationsUpdated)
   }
 })
 </script>
@@ -319,6 +360,25 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
   background: rgba(37, 99, 235, 0.10);
   border-color: rgba(37, 99, 235, 0.18);
+}
+
+.accItem--notify {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: #fff;
+  background: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .accFooter {

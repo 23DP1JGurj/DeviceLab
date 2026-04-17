@@ -11,6 +11,7 @@ import ClientNewOrder from '../components/ClientNewOrder.vue'
 import ClientOrderHistory from '../components/ClientOrderHistory.vue'
 import Login from '../components/Login.vue'
 import MyDevices from '../components/MyDevices.vue'
+import Notifications from '../components/Notifications.vue'
 import Profile from '../components/Profile.vue'
 import Register from '../components/Register.vue'
 import StaffAllOrders from '../components/StaffAllOrders.vue'
@@ -39,6 +40,7 @@ const routes = [
   { path: '/admin/staff', component: AdminStaff, meta: { requiresAuth: true, roles: ['admin'] } },
   { path: '/admin/reviews', component: AdminReviews, meta: { requiresAuth: true, roles: ['admin'] } },
   { path: '/devices', component: MyDevices, meta: { requiresAuth: true, roles: ['client'] } },
+  { path: '/notifications', component: Notifications, meta: { requiresAuth: true } },
   { path: '/orders', redirect: '/orders/new' },
   { path: '/orders/new', component: ClientNewOrder, meta: { requiresAuth: true, roles: CLIENT_ROLES } },
   { path: '/orders/history', component: ClientOrderHistory, meta: { requiresAuth: true, roles: CLIENT_ROLES } },

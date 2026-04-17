@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->hasMany(Review::class, 'staff_id');
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);

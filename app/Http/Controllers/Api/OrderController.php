@@ -11,6 +11,7 @@ use App\Models\Part;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -18,6 +19,10 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    public function __construct(private NotificationService $notifications)
+    {
+    }
+
     private const STAFF_ACTIVE_STATUSES = [
         'confirmed',
         'diagnostics',
@@ -162,6 +167,13 @@ class OrderController extends Controller
 
             $order->update(['final_cost' => $total]);
 
+            $this->notifyStaffAndAdmins(
+                $order,
+                'order_created',
+                'Jauns pasūtījums',
+                "Sistēmā izveidots jauns pasūtījums {$order->order_number}."
+            );
+
             return $this->loadOrderRelations($order);
         });
     }
@@ -259,6 +271,13 @@ class OrderController extends Controller
                 'Klients apmaksāja pasūtījumu. Pasūtījums pabeigts.'
             );
 
+            $this->notifyStaffAndAdmins(
+                $lockedOrder,
+                'order_paid',
+                'Pasūtījums apmaksāts',
+                "Klients apmaksāja pasūtījumu {$lockedOrder->order_number}."
+            );
+
             return $this->loadOrderRelations($lockedOrder)->setRelation('payment', $payment->fresh());
         });
     }
@@ -289,6 +308,8 @@ class OrderController extends Controller
                 $request->user()?->id,
                 $request->input('status_comment')
             );
+
+            $this->notifyClientAboutStatusChange($order->fresh(), $newStatus, $request->input('status_comment'));
         }
 
         return $this->loadOrderRelations($order);
@@ -488,6 +509,14 @@ class OrderController extends Controller
                     : 'Pasūtījumu pieņēma darbinieks.'
             );
 
+            $this->notifications->notify(
+                $lockedOrder->user_id,
+                'order_claimed',
+                'Pasūtījums pieņemts',
+                "Jūsu pasūtījumu pieņēma darbinieks {$request->user()->name}.",
+                $lockedOrder
+            );
+
             return $lockedOrder;
         });
 
@@ -561,6 +590,70 @@ class OrderController extends Controller
             'changed_by' => $changedBy,
             'comment' => $comment,
         ]);
+    }
+
+    private function notifyClientAboutStatusChange(Order $order, string $status, ?string $comment = null): void
+    {
+        $label = $this->statusLabel($status);
+
+        if ($status === 'ready') {
+            $title = 'Pasūtījums gatavs';
+            $message = 'Jūsu ierīce ir gatava saņemšanai.';
+        } else {
+            $title = 'Statuss mainīts';
+            $message = "Pasūtījuma {$order->order_number} statuss: {$label}.";
+        }
+
+        $comment = trim((string) $comment);
+
+        if ($comment !== '') {
+            $message .= ' ' . mb_substr($comment, 0, 220);
+        }
+
+        $this->notifications->notify(
+            $order->user_id,
+            'order_status_changed',
+            $title,
+            $message,
+            $order,
+            ['status' => $status]
+        );
+    }
+
+    private function notifyStaffAndAdmins(Order $order, string $type, string $title, string $message, array $data = []): void
+    {
+        if ($type === 'order_created') {
+            $recipientIds = User::query()
+                ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN])
+                ->pluck('id')
+                ->all();
+        } else {
+            $recipientIds = User::query()
+                ->where('role', User::ROLE_ADMIN)
+                ->pluck('id')
+                ->all();
+
+            if ($order->assigned_staff_id) {
+                $recipientIds[] = $order->assigned_staff_id;
+            }
+        }
+
+        $this->notifications->notifyMany($recipientIds, $type, $title, $message, $order, $data);
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'new' => 'Jauns',
+            'confirmed' => 'Apstiprināts',
+            'diagnostics' => 'Diagnostika',
+            'in_progress' => 'Remontā',
+            'waiting_parts' => 'Gaida detaļas',
+            'ready' => 'Gatavs saņemšanai',
+            'done' => 'Pabeigts',
+            'cancelled' => 'Atcelts',
+            default => $status,
+        };
     }
 
     private function recalculateFinalCost(Order $order): void

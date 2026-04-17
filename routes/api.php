@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\DeviceCatalogController;
 use App\Http\Controllers\Api\MyDeviceController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Models\Branch;
@@ -53,6 +54,15 @@ Route::get('/parts', fn () => Part::query()
 Route::get('/device-brands', [DeviceCatalogController::class, 'brands']);
 Route::get('/device-models', [DeviceCatalogController::class, 'models']);
 Route::get('/device-model-suggestions', [DeviceCatalogController::class, 'suggestions']);
+
+Route::prefix('notifications')
+    ->middleware(array_merge($sessionMiddleware, ['auth']))
+    ->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::patch('/{notification}/read', [NotificationController::class, 'markRead']);
+        Route::post('/read-all', [NotificationController::class, 'markAllRead']);
+    });
 
 Route::prefix('my')
     ->middleware(array_merge($sessionMiddleware, ['auth', 'role:client']))

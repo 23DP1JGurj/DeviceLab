@@ -54,4 +54,9 @@ class Order extends Model
     {
         return $this->hasOne(Review::class);
     }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
 }
