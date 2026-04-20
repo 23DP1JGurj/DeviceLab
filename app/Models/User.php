@@ -29,6 +29,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'is_blocked',
         'specialization',
         'branch_id',
     ];
@@ -43,6 +44,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_blocked' => 'boolean',
         ];
     }
 

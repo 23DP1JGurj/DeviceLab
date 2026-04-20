@@ -99,6 +99,15 @@
             <div v-if="paymentMessage" class="msg ok mt12">{{ paymentMessage }}</div>
           </div>
 
+          <div v-if="mode === 'client' && canCancel" class="card">
+            <div class="sectionTitle">Pieteikuma atcelšana</div>
+            <p class="muted mt12">Pieteikumu var atcelt, kamēr to vēl nav pieņēmis darbinieks.</p>
+            <button class="btn btnDanger mt12" type="button" @click="cancelOrder" :disabled="cancelling">
+              {{ cancelling ? 'Atceļ...' : 'Atcelt pieteikumu' }}
+            </button>
+            <div v-if="cancelMessage" class="msg ok mt12">{{ cancelMessage }}</div>
+          </div>
+
           <div class="card">
             <div class="sectionTitle">Atsauksme</div>
             <div v-if="order.review" class="reviewBlock">
@@ -151,12 +160,19 @@ const order = ref(null)
 const loading = ref(false)
 const error = ref('')
 const paying = ref(false)
+const cancelling = ref(false)
 const paymentMessage = ref('')
+const cancelMessage = ref('')
 const reviewing = ref(false)
 const reviewMessage = ref('')
 const review = reactive({ rating: 0, comment: '' })
 
 const canReview = computed(() => order.value?.status === 'done' && order.value?.payment?.status === 'paid')
+const canCancel = computed(() => (
+  order.value?.status === 'new'
+  && !order.value?.assigned_staff_id
+  && order.value?.payment?.status !== 'paid'
+))
 
 function formatMoney(value) {
   return `${Number(value || 0).toFixed(2)} €`
@@ -222,6 +238,24 @@ async function payOrder() {
     error.value = (e?.message || 'Neizdevās apmaksāt pasūtījumu.').slice(0, 260)
   } finally {
     paying.value = false
+  }
+}
+
+async function cancelOrder() {
+  if (!order.value || !confirm('Vai tiešām vēlaties atcelt šo pieteikumu?')) return
+
+  cancelling.value = true
+  cancelMessage.value = ''
+
+  try {
+    const response = await authFetch(`/api/my/orders/${order.value.id}/cancel`, { method: 'PATCH' })
+    if (!response.ok) throw new Error(await extractErrorMessage(response, 'Neizdevās atcelt pieteikumu.'))
+    order.value = await response.json()
+    cancelMessage.value = 'Pieteikums atcelts.'
+  } catch (e) {
+    error.value = (e?.message || 'Neizdevās atcelt pieteikumu.').slice(0, 260)
+  } finally {
+    cancelling.value = false
   }
 }
 
@@ -298,6 +332,7 @@ onMounted(loadOrder)
 .textarea { resize: vertical; line-height: 1.5; }
 .btn { border: 1px solid rgba(15,23,42,.14); background: #fff; color: #0f172a; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 800; text-decoration: none; }
 .btnPrimary { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); color: #fff; border-color: rgba(29,78,216,.60); box-shadow: 0 10px 18px rgba(37,99,235,.22); }
+.btnDanger { color: #be123c; background: #fff1f2; border-color: #fecdd3; }
 .btnGhost { background: transparent; }
 .msg { color: #b91c1c; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.18); padding: 9px 11px; border-radius: 12px; font-size: 13px; }
 .msg.ok { color: #166534; background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.22); }

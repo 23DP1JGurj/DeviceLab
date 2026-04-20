@@ -264,3 +264,16 @@ export async function updateProfile(payload) {
 
   return currentUser.value
 }
+
+export async function updatePassword(payload) {
+  const response = await authFetch('/api/me/password', {
+    method: 'PATCH',
+    json: payload,
+  })
+
+  if (!response.ok) {
+    throw createApiError(await extractErrorData(response, 'Unable to update password.'))
+  }
+
+  return response.json()
+}

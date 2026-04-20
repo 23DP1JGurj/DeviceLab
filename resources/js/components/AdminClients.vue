@@ -27,7 +27,14 @@
             <div class="itemTitle">{{ client.name }}</div>
             <div class="description">{{ client.email }} · {{ client.phone || 'tālrunis nav norādīts' }}</div>
           </div>
-          <div class="rightValue">{{ client.orders_count }}</div>
+          <div class="adminActions">
+            <span :class="['badge', client.is_blocked ? 'badgeBlocked' : 'badgeActive']">
+              {{ client.is_blocked ? 'Bloķēts' : 'Aktīvs' }}
+            </span>
+            <button class="btn btnSmall" type="button" @click="toggleBlock(client)" :disabled="busyId === client.id">
+              {{ client.is_blocked ? 'Atbloķēt' : 'Bloķēt' }}
+            </button>
+          </div>
         </div>
         <div class="chips">
           <span class="chip">Ierīces: {{ client.devices_count }}</span>
@@ -51,6 +58,7 @@ const clients = ref([])
 const total = ref(0)
 const loading = ref(false)
 const error = ref('')
+const busyId = ref(null)
 
 function formatDate(value) {
   if (!value) return '—'
@@ -80,6 +88,30 @@ async function loadClients() {
     error.value = (e?.message || 'Neizdevās ielādēt klientus.').slice(0, 260)
   } finally {
     loading.value = false
+  }
+}
+
+async function toggleBlock(client) {
+  const action = client.is_blocked ? 'unblock' : 'block'
+  const label = client.is_blocked ? 'atbloķēt' : 'bloķēt'
+
+  if (!confirm(`Vai tiešām vēlaties ${label} šo lietotāju?`)) return
+
+  busyId.value = client.id
+  error.value = ''
+
+  try {
+    const response = await authFetch(`/api/admin/users/${client.id}/${action}`, { method: 'PATCH' })
+
+    if (!response.ok) {
+      throw new Error(await extractErrorMessage(response, 'Neizdevās mainīt lietotāja statusu.'))
+    }
+
+    await loadClients()
+  } catch (e) {
+    error.value = (e?.message || 'Neizdevās mainīt lietotāja statusu.').slice(0, 260)
+  } finally {
+    busyId.value = null
   }
 }
 

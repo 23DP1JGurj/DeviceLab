@@ -38,28 +38,27 @@ class OrderController extends Controller
 
     public function clientIndex(Request $request)
     {
-        return $this->buildOrdersQuery($request, $request->user(), true)->latest()->paginate(10);
+        return $this->applySort($this->buildOrdersQuery($request, $request->user(), true), $request)->paginate(10);
     }
 
     public function index(Request $request)
     {
-        return $this->buildOrdersQuery($request, $request->user())->latest()->paginate(10);
+        return $this->applySort($this->buildOrdersQuery($request, $request->user()), $request)->paginate(10);
     }
 
     public function unassigned(Request $request)
     {
-        return $this->buildOrdersQuery($request, $request->user())
+        return $this->applySort($this->buildOrdersQuery($request, $request->user())
             ->whereNull('assigned_staff_id')
-            ->latest()
+            ->where('status', 'new'), $request)
             ->paginate(10);
     }
 
     public function assignedToMe(Request $request)
     {
-        return $this->buildOrdersQuery($request, $request->user())
+        return $this->applySort($this->buildOrdersQuery($request, $request->user())
             ->where('assigned_staff_id', $request->user()->id)
-            ->whereIn('status', self::STAFF_ACTIVE_STATUSES)
-            ->latest('updated_at')
+            ->whereIn('status', self::STAFF_ACTIVE_STATUSES), $request)
             ->paginate(10);
     }
 
@@ -72,7 +71,7 @@ class OrderController extends Controller
             $query->where('assigned_staff_id', $request->user()->id);
         }
 
-        return $query->latest('updated_at')->paginate(10);
+        return $this->applySort($query, $request)->paginate(10);
     }
 
     public function myOrders(Request $request)
@@ -324,6 +323,55 @@ class OrderController extends Controller
         return response()->noContent();
     }
 
+    public function cancel(Request $request, Order $order)
+    {
+        $this->ensureClientOwnsOrder($request->user(), $order);
+
+        return DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::query()
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedOrder->user_id !== $request->user()->id) {
+                abort(403);
+            }
+
+            if ($lockedOrder->status !== 'new' || $lockedOrder->assigned_staff_id !== null) {
+                throw ValidationException::withMessages([
+                    'order' => ['Pieteikumu var atcelt tikai pirms to pieņem darbinieks.'],
+                ]);
+            }
+
+            if ($lockedOrder->payment?->status === Payment::STATUS_PAID) {
+                throw ValidationException::withMessages([
+                    'payment' => ['Apmaksātu pasūtījumu nevar atcelt.'],
+                ]);
+            }
+
+            $oldStatus = $lockedOrder->status;
+            $lockedOrder->status = 'cancelled';
+            $lockedOrder->save();
+
+            $this->recordStatusHistory(
+                $lockedOrder,
+                $oldStatus,
+                'cancelled',
+                $request->user()->id,
+                'Klients atcēla pieteikumu.'
+            );
+
+            $this->notifyStaffAndAdmins(
+                $lockedOrder,
+                'order_cancelled',
+                'Pieteikums atcelts',
+                "Klients atcēla pieteikumu {$lockedOrder->order_number}."
+            );
+
+            return $this->loadOrderRelations($lockedOrder);
+        });
+    }
+
     public function storeItem(Request $request, Order $order)
     {
         $this->ensureStaffCanManageItems($request->user(), $order);
@@ -545,19 +593,61 @@ class OrderController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->string('search');
-            $query->where('order_number', 'like', "%{$search}%");
+            $search = trim((string) $request->input('search'));
+            $query->where(function ($query) use ($search) {
+                $query->where('order_number', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('assignedStaff', fn ($staffQuery) => $staffQuery->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('device', function ($deviceQuery) use ($search) {
+                        $deviceQuery->where('brand', 'like', "%{$search}%")
+                            ->orWhere('model', 'like', "%{$search}%");
+                    });
+            });
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->string('status'));
+            $query->where('status', (string) $request->input('status'));
         }
 
         if ($request->filled('branch_id')) {
             $query->where('branch_id', (int) $request->input('branch_id'));
         }
 
+        if ($request->filled('request_type')) {
+            $query->where('request_type', (string) $request->input('request_type'));
+        }
+
+        if ($request->filled('payment_status')) {
+            $paymentStatus = (string) $request->input('payment_status');
+
+            if ($paymentStatus === 'paid') {
+                $query->whereHas('payment', fn ($paymentQuery) => $paymentQuery->where('status', Payment::STATUS_PAID));
+            } elseif (in_array($paymentStatus, ['unpaid', 'pending'], true)) {
+                $query->where(function ($query) {
+                    $query->whereDoesntHave('payment')
+                        ->orWhereHas('payment', fn ($paymentQuery) => $paymentQuery->where('status', '!=', Payment::STATUS_PAID));
+                });
+            }
+        }
+
+        if ($request->filled('assigned_staff_id') && $user->hasRole(User::ROLE_ADMIN)) {
+            $query->where('assigned_staff_id', (int) $request->input('assigned_staff_id'));
+        }
+
+        if ($request->filled('has_review')) {
+            $request->boolean('has_review')
+                ? $query->whereHas('review')
+                : $query->whereDoesntHave('review');
+        }
+
         return $query;
+    }
+
+    private function applySort($query, Request $request)
+    {
+        return $request->input('sort') === 'oldest'
+            ? $query->oldest('created_at')
+            : $query->latest('created_at');
     }
 
     private function loadOrderRelations(Order $order): Order
@@ -624,7 +714,7 @@ class OrderController extends Controller
 
     private function notifyStaffAndAdmins(Order $order, string $type, string $title, string $message, array $data = []): void
     {
-        if ($type === 'order_created') {
+        if (in_array($type, ['order_created', 'order_cancelled'], true)) {
             $recipientIds = User::query()
                 ->whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN])
                 ->pluck('id')

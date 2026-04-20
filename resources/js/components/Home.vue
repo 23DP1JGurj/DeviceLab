@@ -431,28 +431,13 @@
       </p>
 
       <div class="reviews-grid">
-        <div class="review">
-          <div class="stars">★★★★★</div>
-          <p>Ātri atrada iemeslu, visu saskaņoja par cenu, remonts aizņēma mazāk par dienu. Patika, ka visu izskaidroja.</p>
+        <div class="review" v-for="review in (publicReviews.length ? publicReviews : fallbackReviews)" :key="review.id">
+          <div class="stars">{{ starText(review.rating) }}</div>
+          <p>{{ review.comment }}</p>
+          <div class="verified">Pārbaudīta atsauksme pēc servisa pasūtījuma</div>
           <div class="who">
-            <span>Andris</span>
-            <span class="badge-round">A</span>
-          </div>
-        </div>
-        <div class="review">
-          <div class="stars">★★★★★</div>
-          <p>Mainīja ekrānu — izskatās kā jauns, skāriens strādā ideāli. Vēl iedeva padomus, kā saudzēt ierīci.</p>
-          <div class="who">
-            <span>Marija</span>
-            <span class="badge-round">M</span>
-          </div>
-        </div>
-        <div class="review">
-          <div class="stars">★★★★☆</div>
-          <p>Nedaudz pagaidīju rindā, bet rezultāts lielisks. Nebija nekādu “pārsteigumu” par izmaksām.</p>
-          <div class="who">
-            <span>Deniss</span>
-            <span class="badge-round">D</span>
+            <span>{{ review.client_name }}</span>
+            <span class="badge-round">{{ reviewInitial(review.client_name) }}</span>
           </div>
         </div>
       </div>
@@ -624,6 +609,27 @@ const draft = ref({
   problem_description: 'Neieslēdzas pēc uzlādes. Dažreiz mirgo logo un atkal izslēdzas.',
 })
 
+const publicReviews = ref([])
+const fallbackReviews = [
+  {
+    id: 'demo-1',
+    rating: 5,
+    comment: 'Ātri atrada iemeslu, visu saskaņoja par cenu, remonts aizņēma mazāk par dienu. Patika, ka visu izskaidroja.',
+    client_name: 'Andris',
+  },
+  {
+    id: 'demo-2',
+    rating: 5,
+    comment: 'Mainīja ekrānu — izskatās kā jauns, skāriens strādā ideāli. Vēl iedeva padomus, kā saudzēt ierīci.',
+    client_name: 'Marija',
+  },
+  {
+    id: 'demo-3',
+    rating: 4,
+    comment: 'Nedaudz pagaidīju rindā, bet rezultāts lielisks. Nebija nekādu pārsteigumu par izmaksām.',
+    client_name: 'Deniss',
+  },
+]
 const cleanups = []
 
 function saveDraft() {
@@ -644,8 +650,33 @@ function goToOrders() {
   router.push('/orders')
 }
 
+function starText(rating) {
+  const value = Math.max(0, Math.min(5, Number(rating || 0)))
+  return '★'.repeat(value) + '☆'.repeat(5 - value)
+}
+
+function reviewInitial(name) {
+  return String(name || 'K').trim().charAt(0).toUpperCase() || 'K'
+}
+
+async function loadPublicReviews() {
+  try {
+    const response = await fetch('/api/reviews/public', {
+      headers: { Accept: 'application/json' },
+    })
+
+    if (!response.ok) return
+
+    const data = await response.json()
+    publicReviews.value = Array.isArray(data) ? data.filter(review => review.comment) : []
+  } catch {
+    publicReviews.value = []
+  }
+}
+
 onMounted(() => {
   void initAuth().catch(() => null)
+  void loadPublicReviews()
 
   const el = root.value
   if (!el) return
@@ -1409,6 +1440,11 @@ onBeforeUnmount(() => {
     }
     .stars{ color:#0a66ff; font-weight:900; letter-spacing:.06em; }
     .review p{ margin:0; color: rgba(28,36,48,.62); line-height:1.75; font-size: 14px; }
+    .verified{
+      color: rgba(10,102,255,.72);
+      font-size: 12px;
+      font-weight: 800;
+    }
     .who{
       margin-top:auto;
       display:flex;

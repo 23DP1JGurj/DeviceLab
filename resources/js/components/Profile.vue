@@ -46,6 +46,41 @@
         </div>
       </form>
     </div>
+
+    <div class="card">
+      <div class="cardHead">
+        <div>
+          <div class="cardTitle">Mainīt paroli</div>
+          <div class="cardSubtitle">Drošības nolūkos ievadi pašreizējo paroli un jauno paroli divreiz.</div>
+        </div>
+      </div>
+
+      <form class="formGrid" @submit.prevent="submitPassword">
+        <label class="field">
+          <span class="label">Pašreizējā parole</span>
+          <input class="control" v-model="passwordForm.current_password" type="password" autocomplete="current-password" />
+        </label>
+
+        <label class="field">
+          <span class="label">Jaunā parole</span>
+          <input class="control" v-model="passwordForm.new_password" type="password" autocomplete="new-password" />
+        </label>
+
+        <label class="field fieldWide">
+          <span class="label">Atkārtot jauno paroli</span>
+          <input class="control" v-model="passwordForm.new_password_confirmation" type="password" autocomplete="new-password" />
+        </label>
+
+        <div v-if="passwordError" class="message error">{{ passwordError }}</div>
+        <div v-else-if="passwordSuccess" class="message ok">{{ passwordSuccess }}</div>
+
+        <div class="actions">
+          <button class="btn btnPrimary" type="submit" :disabled="passwordSaving">
+            {{ passwordSaving ? 'Saglabā...' : 'Saglabāt paroli' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -53,7 +88,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
-import { currentUser, initAuth, updateProfile } from '../auth'
+import { currentUser, initAuth, updatePassword, updateProfile } from '../auth'
 
 const router = useRouter()
 
@@ -66,6 +101,15 @@ const form = reactive({
 const saving = ref(false)
 const error = ref('')
 const success = ref('')
+const passwordSaving = ref(false)
+const passwordError = ref('')
+const passwordSuccess = ref('')
+
+const passwordForm = reactive({
+  current_password: '',
+  new_password: '',
+  new_password_confirmation: '',
+})
 
 const user = computed(() => currentUser.value ?? {
   name: '',
@@ -127,6 +171,40 @@ async function submit() {
     error.value = message
   } finally {
     saving.value = false
+  }
+}
+
+async function submitPassword() {
+  passwordError.value = ''
+  passwordSuccess.value = ''
+
+  if (passwordForm.new_password.length < 8) {
+    passwordError.value = 'Jaunajai parolei jābūt vismaz 8 rakstzīmes garai.'
+    return
+  }
+
+  if (passwordForm.new_password !== passwordForm.new_password_confirmation) {
+    passwordError.value = 'Jaunās paroles nesakrīt.'
+    return
+  }
+
+  passwordSaving.value = true
+
+  try {
+    await updatePassword({
+      current_password: passwordForm.current_password,
+      new_password: passwordForm.new_password,
+      new_password_confirmation: passwordForm.new_password_confirmation,
+    })
+
+    passwordForm.current_password = ''
+    passwordForm.new_password = ''
+    passwordForm.new_password_confirmation = ''
+    passwordSuccess.value = 'Parole veiksmīgi nomainīta.'
+  } catch (err) {
+    passwordError.value = err?.message || 'Neizdevās nomainīt paroli.'
+  } finally {
+    passwordSaving.value = false
   }
 }
 

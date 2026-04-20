@@ -20,6 +20,33 @@
       <div class="countPill">{{ total }}</div>
     </div>
 
+    <div class="filterBar">
+      <input class="control" v-model.trim="filters.search" type="search" placeholder="Meklēt pēc numura, klienta vai ierīces" />
+      <select class="control" v-model="filters.status">
+        <option value="">Visi statusi</option>
+        <option value="confirmed">Apstiprināts</option>
+        <option value="diagnostics">Diagnostika</option>
+        <option value="in_progress">Remontā</option>
+        <option value="waiting_parts">Gaida detaļas</option>
+        <option value="ready">Gatavs saņemšanai</option>
+      </select>
+      <select class="control" v-model="filters.branch_id">
+        <option value="">Visas filiāles</option>
+        <option value="1">Filiāle #1</option>
+        <option value="2">Filiāle #2</option>
+      </select>
+      <select class="control" v-model="filters.payment_status">
+        <option value="">Visa apmaksa</option>
+        <option value="paid">Apmaksāts</option>
+        <option value="unpaid">Gaida apmaksu</option>
+      </select>
+      <select class="control" v-model="filters.sort">
+        <option value="newest">Jaunākie</option>
+        <option value="oldest">Vecākie</option>
+      </select>
+      <button class="btn btnSoft" type="button" @click="resetFilters">Atiestatīt</button>
+    </div>
+
     <div v-if="loading" class="card">
       <div class="muted">Ielādējam tavus pasūtījumus...</div>
     </div>
@@ -29,7 +56,7 @@
     </div>
 
     <div v-else-if="orders.length === 0" class="card">
-      <div class="muted">Pašlaik nav aktīvu pieņemto pasūtījumu.</div>
+      <div class="muted">{{ hasActiveFilters ? 'Pēc filtriem pasūtījumi netika atrasti.' : 'Pašlaik nav aktīvu pieņemto pasūtījumu.' }}</div>
     </div>
 
     <div v-else class="orderStack">
@@ -210,7 +237,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import OrderStatusTimeline from './OrderStatusTimeline.vue'
@@ -235,6 +262,17 @@ const itemSuccess = ref('')
 const itemMessageId = ref(null)
 const edit = reactive({})
 const itemForms = reactive({})
+const filters = reactive({
+  search: '',
+  status: '',
+  branch_id: '',
+  payment_status: '',
+  sort: 'newest',
+})
+
+const hasActiveFilters = computed(() => Boolean(
+  filters.search || filters.status || filters.branch_id || filters.payment_status || filters.sort !== 'newest',
+))
 
 function ensureEdit(order) {
   if (!edit[order.id]) {
@@ -361,7 +399,13 @@ async function loadOrders() {
   listError.value = ''
 
   try {
-    const response = await authFetch('/api/staff/orders/my')
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value)
+    })
+
+    const query = params.toString()
+    const response = await authFetch(`/api/staff/orders/my${query ? `?${query}` : ''}`)
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -386,6 +430,14 @@ async function loadOrders() {
   } finally {
     loading.value = false
   }
+}
+
+function resetFilters() {
+  filters.search = ''
+  filters.status = ''
+  filters.branch_id = ''
+  filters.payment_status = ''
+  filters.sort = 'newest'
 }
 
 async function addOrderItem(order) {
@@ -542,6 +594,14 @@ onMounted(async () => {
     listError.value = (error?.message || 'Neizdevās ielādēt datus.').slice(0, 260)
   }
 })
+
+let filterTimer = null
+watch(filters, () => {
+  clearTimeout(filterTimer)
+  filterTimer = setTimeout(() => {
+    loadOrders()
+  }, 300)
+}, { deep: true })
 </script>
 
 <style scoped>
@@ -563,6 +623,7 @@ onMounted(async () => {
 .sectionTitle { font-size: 20px; font-weight: 900; }
 .muted { color: #64748b; font-size: 14px; }
 .small { font-size: 12px; }
+.filterBar { display: grid; grid-template-columns: minmax(220px, 1fr) 150px 150px 150px 130px auto; gap: 10px; align-items: center; margin: 0 0 14px; }
 .card { background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(15, 23, 42, 0.08); border-radius: 18px; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07); padding: 18px; }
 .orderStack { display: grid; gap: 14px; }
 .orderTop { align-items: flex-start; }
@@ -621,6 +682,7 @@ onMounted(async () => {
 .btn { border: 1px solid rgba(15, 23, 42, 0.14); background: #fff; color: #0f172a; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 800; text-decoration: none; }
 .btn:disabled { opacity: 0.65; cursor: not-allowed; }
 .btnPrimary { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); color: #fff; border-color: rgba(29, 78, 216, 0.60); box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22); }
+.btnSoft { background: #f8fafc; }
 .btnGhost { background: transparent; }
 .btnDanger { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
 .btnTiny { padding: 7px 10px; font-size: 12px; }
@@ -629,6 +691,7 @@ onMounted(async () => {
 
 @media (max-width: 920px) {
   .topbar { align-items: flex-start; flex-direction: column; }
+  .filterBar { grid-template-columns: 1fr; }
   .orderTop, .itemLine, .addItemPanel { grid-template-columns: 1fr; display: grid; }
   .itemsBlockHead { flex-direction: column; }
   .cost { text-align: left; }

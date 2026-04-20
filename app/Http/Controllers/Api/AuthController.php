@@ -50,6 +50,16 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($request->user()?->is_blocked) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'email' => ['Konts ir bloķēts. Sazinieties ar administratoru.'],
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return response()->json([
@@ -104,6 +114,30 @@ class AuthController extends Controller
         ]);
     }
 
+    public function updatePassword(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['Pašreizējā parole nav pareiza.'],
+            ]);
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($data['new_password']),
+        ])->save();
+
+        return response()->json([
+            'message' => 'Parole veiksmīgi nomainīta.',
+        ]);
+    }
+
     private function serializeUser(User $user): array
     {
         return [
@@ -112,6 +146,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->role,
+            'is_blocked' => (bool) $user->is_blocked,
             'specialization' => $user->specialization,
             'branch_id' => $user->branch_id,
         ];

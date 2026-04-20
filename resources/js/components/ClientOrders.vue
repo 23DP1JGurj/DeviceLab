@@ -200,6 +200,27 @@
         <div class="muted">Kopā: {{ total }}</div>
       </div>
 
+      <div class="filterBar">
+        <input class="control" v-model.trim="filters.search" type="search" placeholder="Meklēt pēc numura vai ierīces" />
+        <select class="control" v-model="filters.status">
+          <option value="">Visi statusi</option>
+          <option value="new">Jauns</option>
+          <option value="confirmed">Apstiprināts</option>
+          <option value="diagnostics">Diagnostika</option>
+          <option value="in_progress">Remontā</option>
+          <option value="waiting_parts">Gaida detaļas</option>
+          <option value="ready">Gatavs saņemšanai</option>
+          <option value="done">Pabeigts</option>
+          <option value="cancelled">Atcelts</option>
+        </select>
+        <select class="control" v-model="filters.payment_status">
+          <option value="">Apmaksa: visi</option>
+          <option value="paid">Apmaksāts</option>
+          <option value="unpaid">Gaida apmaksu</option>
+        </select>
+        <button class="btn btnSoft" type="button" @click="resetFilters">Atiestatīt</button>
+      </div>
+
       <div v-if="listLoading" class="card stateCard">
         <div class="loadingBox">Ielādējam pasūtījumus...</div>
       </div>
@@ -210,7 +231,7 @@
         </div>
 
         <div v-else-if="orders.length === 0" class="card stateCard">
-          <div class="muted">Pasūtījumu vēl nav.</div>
+          <div class="muted">{{ hasActiveFilters ? 'Pēc filtriem pasūtījumi netika atrasti.' : 'Pasūtījumu vēl nav.' }}</div>
         </div>
 
         <div class="card orderCard" v-for="order in orders" :key="order.id">
@@ -241,6 +262,15 @@
 
           <div class="actions compactActions">
             <RouterLink class="btn btnPrimary" :to="`/orders/${order.id}`">Atvērt</RouterLink>
+            <button
+              v-if="canCancelOrder(order)"
+              class="btn btnDanger"
+              type="button"
+              @click="cancelOrder(order)"
+              :disabled="cancellingId === order.id"
+            >
+              {{ cancellingId === order.id ? 'Atceļ...' : 'Atcelt pieteikumu' }}
+            </button>
           </div>
         </div>
       </div>
@@ -374,6 +404,7 @@ const metaError = ref('')
 const creating = ref(false)
 const createError = ref('')
 const createSuccess = ref('')
+const cancellingId = ref(null)
 const photoError = ref('')
 const selectedPhotos = ref([])
 const expandedOrderIds = ref([])
@@ -415,6 +446,12 @@ const form = reactive({
   repair_option: 'screen',
   problem_description: '',
   items: [],
+})
+
+const filters = reactive({
+  search: '',
+  status: '',
+  payment_status: '',
 })
 
 const deviceForm = reactive({
@@ -501,6 +538,8 @@ const selectedBranch = computed(() => (
 const selectedDevice = computed(() => (
   devices.value.find(device => device.id === Number(form.device_id)) ?? null
 ))
+
+const hasActiveFilters = computed(() => Object.values(filters).some(Boolean))
 
 function formatMoney(value) {
   const amount = Number(value || 0)
@@ -599,6 +638,10 @@ function isOrderPaid(order) {
 
 function canReviewOrder(order) {
   return order.status === 'done' && order.payment?.status === 'paid'
+}
+
+function canCancelOrder(order) {
+  return order.status === 'new' && !order.assigned_staff_id && order.payment?.status !== 'paid'
 }
 
 function reviewForm(order) {
@@ -878,7 +921,13 @@ async function loadOrders() {
   listError.value = ''
 
   try {
-    const response = await authFetch(showHistory.value ? '/api/my/orders/history' : '/api/my/orders')
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value)
+    })
+    const query = params.toString()
+    const endpoint = showHistory.value ? '/api/my/orders/history' : '/api/my/orders'
+    const response = await authFetch(query ? `${endpoint}?${query}` : endpoint)
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -899,6 +948,13 @@ async function loadOrders() {
   } finally {
     listLoading.value = false
   }
+}
+
+function resetFilters() {
+  filters.search = ''
+  filters.status = ''
+  filters.payment_status = ''
+  loadOrders()
 }
 
 async function createOrder() {
@@ -985,6 +1041,27 @@ async function uploadOrderPhotos(orderId) {
   }
 
   return response.json()
+}
+
+async function cancelOrder(order) {
+  if (!confirm('Vai tiešām vēlaties atcelt šo pieteikumu?')) return
+
+  cancellingId.value = order.id
+  listError.value = ''
+
+  try {
+    const response = await authFetch(`/api/my/orders/${order.id}/cancel`, { method: 'PATCH' })
+
+    if (!response.ok) {
+      throw new Error(await extractErrorMessage(response, 'Neizdevās atcelt pieteikumu.'))
+    }
+
+    replaceOrder(await response.json())
+  } catch (error) {
+    listError.value = (error?.message || 'Neizdevās atcelt pieteikumu.').slice(0, 260)
+  } finally {
+    cancellingId.value = null
+  }
 }
 
 async function payOrder(order) {
@@ -1140,6 +1217,17 @@ watch(
     loadBrandSuggestions()
     loadModelSuggestions()
   },
+)
+
+let filtersTimer = null
+watch(
+  filters,
+  () => {
+    if (!showHistory.value) return
+    clearTimeout(filtersTimer)
+    filtersTimer = setTimeout(() => loadOrders(), 300)
+  },
+  { deep: true }
 )
 
 onMounted(async () => {
@@ -1393,6 +1481,11 @@ onBeforeUnmount(() => {
 }
 .btnGhost {
   background: transparent;
+}
+.btnDanger {
+  color: #be123c;
+  background: #fff1f2;
+  border-color: #fecdd3;
 }
 
 .btnIcon {
@@ -1809,6 +1902,13 @@ onBeforeUnmount(() => {
   margin-top: 28px;
 }
 
+.filterBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(160px, 220px) minmax(160px, 220px) auto;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
 .sectionHeader {
   margin: 0 0 14px;
   padding: 0 2px;
@@ -1983,6 +2083,7 @@ onBeforeUnmount(() => {
   }
 
   .grid2,
+  .filterBar,
   .itemRow,
   .orderTop,
   .orderItem {

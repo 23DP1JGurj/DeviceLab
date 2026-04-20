@@ -23,6 +23,26 @@
       <div class="countPill">{{ total }}</div>
     </div>
 
+    <div class="filterBar">
+      <input class="control" v-model.trim="filters.search" type="search" placeholder="Meklēt pēc numura, klienta vai ierīces" />
+      <select class="control" v-model="filters.branch_id">
+        <option value="">Visas filiāles</option>
+        <option value="1">Filiāle #1</option>
+        <option value="2">Filiāle #2</option>
+      </select>
+      <select class="control" v-model="filters.request_type">
+        <option value="">Visi veidi</option>
+        <option value="general">Vispārīgs</option>
+        <option value="screen_battery">Ekrāns/akumulators</option>
+        <option value="quick_diagnostics">Ātrā diagnostika</option>
+      </select>
+      <select class="control" v-model="filters.sort">
+        <option value="newest">Jaunākie</option>
+        <option value="oldest">Vecākie</option>
+      </select>
+      <button class="btn btnSoft" type="button" @click="resetFilters">Atiestatīt</button>
+    </div>
+
     <div v-if="loading" class="card">
       <div class="muted">Ielādējam pasūtījumus...</div>
     </div>
@@ -32,7 +52,7 @@
     </div>
 
     <div v-else-if="orders.length === 0" class="card">
-      <div class="muted">Jaunu nepiešķirtu pasūtījumu nav.</div>
+      <div class="muted">{{ hasActiveFilters ? 'Pēc filtriem pasūtījumi netika atrasti.' : 'Jaunu nepiešķirtu pasūtījumu nav.' }}</div>
     </div>
 
     <div v-else class="orderStack">
@@ -71,7 +91,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
@@ -86,6 +106,16 @@ const listError = ref('')
 const claimingId = ref(null)
 const claimMessage = ref('')
 const claimError = ref('')
+const filters = reactive({
+  search: '',
+  branch_id: '',
+  request_type: '',
+  sort: 'newest',
+})
+
+const hasActiveFilters = computed(() => Boolean(
+  filters.search || filters.branch_id || filters.request_type || filters.sort !== 'newest',
+))
 
 function formatMoney(value) {
   const amount = Number(value || 0)
@@ -111,7 +141,13 @@ async function loadOrders() {
   listError.value = ''
 
   try {
-    const response = await authFetch('/api/staff/orders/unassigned')
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value)
+    })
+
+    const query = params.toString()
+    const response = await authFetch(`/api/staff/orders/unassigned${query ? `?${query}` : ''}`)
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -132,6 +168,13 @@ async function loadOrders() {
   } finally {
     loading.value = false
   }
+}
+
+function resetFilters() {
+  filters.search = ''
+  filters.branch_id = ''
+  filters.request_type = ''
+  filters.sort = 'newest'
 }
 
 async function claimOrder(id) {
@@ -177,6 +220,14 @@ onMounted(async () => {
 
   await loadOrders()
 })
+
+let filterTimer = null
+watch(filters, () => {
+  clearTimeout(filterTimer)
+  filterTimer = setTimeout(() => {
+    loadOrders()
+  }, 300)
+}, { deep: true })
 </script>
 
 <style scoped>
@@ -198,6 +249,9 @@ onMounted(async () => {
 .sectionTitle { font-size: 20px; font-weight: 900; }
 .muted { color: #64748b; font-size: 14px; }
 .small { font-size: 12px; }
+.filterBar { display: grid; grid-template-columns: minmax(220px, 1fr) 160px 180px 140px auto; gap: 10px; align-items: center; margin: 0 0 14px; }
+.control { width: 100%; min-width: 0; padding: 11px 12px; border-radius: 14px; border: 1px solid rgba(15, 23, 42, 0.14); background: #fff; outline: none; font: inherit; }
+.control:focus { border-color: rgba(37, 99, 235, 0.6); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
 .card { background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(15, 23, 42, 0.08); border-radius: 18px; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07); padding: 18px; }
 .orderStack { display: grid; gap: 14px; }
 .orderTop { align-items: flex-start; }
@@ -232,12 +286,14 @@ onMounted(async () => {
 .btn { border: 1px solid rgba(15, 23, 42, 0.14); background: #fff; color: #0f172a; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 800; text-decoration: none; }
 .btn:disabled { opacity: 0.65; cursor: not-allowed; }
 .btnPrimary { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); color: #fff; border-color: rgba(29, 78, 216, 0.60); box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22); }
+.btnSoft { background: #f8fafc; }
 .btnGhost { background: transparent; }
 .msg { margin-top: 10px; font-size: 13px; color: #b91c1c; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.18); padding: 9px 11px; border-radius: 12px; }
 .msg.ok { color: #166534; background: rgba(34, 197, 94, 0.10); border-color: rgba(34, 197, 94, 0.22); }
 
 @media (max-width: 820px) {
   .topbar { align-items: flex-start; flex-direction: column; }
+  .filterBar { grid-template-columns: 1fr; }
   .orderTop, .itemLine { grid-template-columns: 1fr; display: grid; }
   .cost { text-align: left; }
   .actions { justify-content: flex-start; }

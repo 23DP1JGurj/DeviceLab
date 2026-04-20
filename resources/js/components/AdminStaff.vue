@@ -27,7 +27,15 @@
             <div class="itemTitle">{{ person.name }}</div>
             <div class="description">{{ person.email }} · {{ person.phone || 'tālrunis nav norādīts' }}</div>
           </div>
-          <div class="rightValue">{{ formatRating(person.average_rating) }}</div>
+          <div class="adminActions">
+            <div class="rightValue">{{ formatRating(person.average_rating) }}</div>
+            <span :class="['badge', person.is_blocked ? 'badgeBlocked' : 'badgeActive']">
+              {{ person.is_blocked ? 'Bloķēts' : 'Aktīvs' }}
+            </span>
+            <button class="btn btnSmall" type="button" @click="toggleBlock(person)" :disabled="busyId === person.id">
+              {{ person.is_blocked ? 'Atbloķēt' : 'Bloķēt' }}
+            </button>
+          </div>
         </div>
         <div class="chips">
           <span class="chip">Specializācija: {{ person.specialization || 'nav norādīta' }}</span>
@@ -51,6 +59,7 @@ const staff = ref([])
 const total = ref(0)
 const loading = ref(false)
 const error = ref('')
+const busyId = ref(null)
 
 function formatRating(value) {
   const rating = Number(value || 0)
@@ -76,6 +85,30 @@ async function loadStaff() {
     error.value = (e?.message || 'Neizdevās ielādēt darbiniekus.').slice(0, 260)
   } finally {
     loading.value = false
+  }
+}
+
+async function toggleBlock(person) {
+  const action = person.is_blocked ? 'unblock' : 'block'
+  const label = person.is_blocked ? 'atbloķēt' : 'bloķēt'
+
+  if (!confirm(`Vai tiešām vēlaties ${label} šo lietotāju?`)) return
+
+  busyId.value = person.id
+  error.value = ''
+
+  try {
+    const response = await authFetch(`/api/admin/users/${person.id}/${action}`, { method: 'PATCH' })
+
+    if (!response.ok) {
+      throw new Error(await extractErrorMessage(response, 'Neizdevās mainīt lietotāja statusu.'))
+    }
+
+    await loadStaff()
+  } catch (e) {
+    error.value = (e?.message || 'Neizdevās mainīt lietotāja statusu.').slice(0, 260)
+  } finally {
+    busyId.value = null
   }
 }
 

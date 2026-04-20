@@ -105,6 +105,29 @@ class ReviewController extends Controller
             ->paginate(10);
     }
 
+    public function publicIndex()
+    {
+        return Review::query()
+            ->with([
+                'user:id,name',
+                'branch:id,name',
+                'staff:id,name',
+            ])
+            ->where('rating', '>=', 4)
+            ->latest()
+            ->limit(6)
+            ->get()
+            ->map(fn (Review $review) => [
+                'id' => $review->id,
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'client_name' => $review->user?->name,
+                'branch_name' => $review->branch?->name,
+                'staff_name' => $review->staff?->name,
+                'created_at' => $review->created_at,
+            ]);
+    }
+
     public function staffIndex(Request $request)
     {
         $user = $request->user();

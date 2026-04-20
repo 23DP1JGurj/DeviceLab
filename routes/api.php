@@ -55,6 +55,10 @@ Route::get('/parts', fn () => Part::query()
 Route::get('/device-brands', [DeviceCatalogController::class, 'brands']);
 Route::get('/device-models', [DeviceCatalogController::class, 'models']);
 Route::get('/device-model-suggestions', [DeviceCatalogController::class, 'suggestions']);
+Route::get('/reviews/public', [ReviewController::class, 'publicIndex']);
+
+Route::patch('/me/password', [AuthController::class, 'updatePassword'])
+    ->middleware(array_merge($sessionMiddleware, ['auth']));
 
 Route::prefix('notifications')
     ->middleware(array_merge($sessionMiddleware, ['auth']))
@@ -74,6 +78,7 @@ Route::prefix('my')
         Route::get('/orders', [OrderController::class, 'clientIndex']);
         Route::post('/orders', [OrderController::class, 'store']);
         Route::get('/orders/history', [OrderController::class, 'clientIndex']);
+        Route::patch('/orders/{order}/cancel', [OrderController::class, 'cancel']);
         Route::get('/orders/{order}/attachments', [OrderAttachmentController::class, 'clientIndex']);
         Route::post('/orders/{order}/attachments', [OrderAttachmentController::class, 'store']);
         Route::delete('/orders/{order}/attachments/{attachment}', [OrderAttachmentController::class, 'destroy']);
@@ -119,4 +124,6 @@ Route::prefix('admin')
         Route::get('/clients', [AdminController::class, 'clients']);
         Route::get('/staff', [AdminController::class, 'staff']);
         Route::get('/reviews', [AdminController::class, 'reviews']);
+        Route::patch('/users/{user}/block', [AdminController::class, 'blockUser']);
+        Route::patch('/users/{user}/unblock', [AdminController::class, 'unblockUser']);
     });

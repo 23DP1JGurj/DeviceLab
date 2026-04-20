@@ -74,6 +74,30 @@
   font-weight: 900;
 }
 
+.filterBar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 150px 150px 150px 160px 130px auto;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 14px;
+}
+
+.control {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: #fff;
+  outline: none;
+  font: inherit;
+}
+
+.control:focus {
+  border-color: rgba(37, 99, 235, 0.6);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
 .stack {
   display: grid;
   gap: 14px;
@@ -91,6 +115,7 @@
 .itemTitle { color: #071833; font-size: 20px; font-weight: 950; }
 .description { margin-top: 8px; color: #475569; line-height: 1.5; }
 .rightValue { text-align: right; color: #071833; font-size: 24px; font-weight: 950; }
+.adminActions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 
 .chips {
   display: flex;
@@ -113,6 +138,8 @@
 .badge { padding: 5px 10px; font-weight: 900; }
 .badgePaid { color: #166534; background: #dcfce7; border-color: #bbf7d0; }
 .badgePending { color: #92400e; background: #fef3c7; border-color: #fde68a; }
+.badgeActive { color: #166534; background: #dcfce7; border-color: #bbf7d0; }
+.badgeBlocked { color: #be123c; background: #ffe4e6; border-color: #fecdd3; }
 
 .linkCard {
   color: inherit;
@@ -137,13 +164,16 @@
   text-decoration: none;
 }
 
+.btnSmall { padding: 7px 10px; font-size: 12px; }
 .btnGhost { background: transparent; }
+.btnSoft { background: #f8fafc; }
 .msg { color: #b91c1c; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.18); padding: 9px 11px; border-radius: 12px; font-size: 13px; }
 .stars { color: #f59e0b; font-size: 21px; letter-spacing: 1px; }
 .comment { margin: 10px 0 0; color: #334155; line-height: 1.55; }
 
 @media (max-width: 900px) {
   .grid, .grid.two, .grid.three { grid-template-columns: 1fr; }
+  .filterBar { grid-template-columns: 1fr; }
   .topbar, .rowTop { align-items: flex-start; flex-direction: column; }
   .rightValue { text-align: left; }
 }
