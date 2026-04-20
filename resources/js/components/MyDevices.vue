@@ -1,16 +1,6 @@
 ﻿<template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">Manas ierīces</h1>
-        <div class="subtitle">Pārvaldi ierīces pirms pieteikuma izveides</div>
-      </div>
-
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar title="Manas ierīces" subtitle="Pārvaldi ierīces pirms pieteikuma izveides" />
 
     <div class="card">
       <div class="cardHead">
@@ -125,9 +115,9 @@
 
 <script setup>
 import { onMounted, reactive, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import AccountMenu from './AccountMenu.vue'
+import { useRouter } from 'vue-router'
 import AutocompleteInput from './AutocompleteInput.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 import { authFetch, extractErrorMessage, initAuth } from '../auth'
 import { fetchDeviceBrands, fetchDeviceModelsByType } from '../deviceCatalog'
 import { formatDevice } from '../deviceFormat'

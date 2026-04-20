@@ -1,15 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">Admin panelis</h1>
-        <div class="subtitle">Sistēmas kopsavilkums un ātra piekļuve pārskatam.</div>
-      </div>
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar title="Admin panelis" subtitle="Sistēmas kopsavilkums un ātra piekļuve pārskatam." />
 
     <div v-if="loading" class="card muted">Ielādējam datus...</div>
     <div v-else-if="error" class="card"><div class="msg">{{ error }}</div></div>
@@ -56,7 +47,7 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { authFetch, extractErrorMessage } from '../auth'
-import AccountMenu from './AccountMenu.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 
 const router = useRouter()
 const loading = ref(false)

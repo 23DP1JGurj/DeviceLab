@@ -1,15 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">{{ order?.order_number || 'Pasūtījums' }}</h1>
-        <div class="subtitle">Detalizēts pasūtījuma pārskats.</div>
-      </div>
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" :to="backTo">← Atpakaļ</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar :title="order?.order_number || 'Pasūtījums'" subtitle="Detalizēts pasūtījuma pārskats." :back-to="backTo" />
 
     <div v-if="loading" class="card muted">Ielādējam pasūtījumu...</div>
     <div v-else-if="error" class="card"><div class="msg">{{ error }}</div></div>
@@ -141,11 +132,11 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { authFetch, extractErrorMessage } from '../auth'
 import { formatDevice } from '../deviceFormat'
 import { statusLabel } from '../orderStatus'
-import AccountMenu from './AccountMenu.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 import OrderStatusTimeline from './OrderStatusTimeline.vue'
 
 const props = defineProps({

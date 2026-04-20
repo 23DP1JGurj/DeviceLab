@@ -1,17 +1,6 @@
 ﻿<template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <div class="titleRow">
-          <h1 class="h1">{{ pageTitle }}</h1>
-          <RouterLink class="btn btnGhost btnBack" to="/">← Sākums</RouterLink>
-        </div>
-      </div>
-
-      <div class="topActions">
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar :title="pageTitle" />
 
     <div v-if="showCreate" class="dashboardGrid">
       <section class="card formCard">
@@ -364,8 +353,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import AccountMenu from './AccountMenu.vue'
 import AutocompleteInput from './AutocompleteInput.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 import { fetchDeviceBrands, fetchDeviceModelsByType } from '../deviceCatalog'
 import { formatDevice } from '../deviceFormat'

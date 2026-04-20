@@ -1,16 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">Darbinieka panelis</h1>
-        <div class="subtitle">Izvēlies darba sadaļu un turpini apstrādāt pasūtījumus.</div>
-      </div>
-
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar title="Darbinieka panelis" subtitle="Izvēlies darba sadaļu un turpini apstrādāt pasūtījumus." />
 
     <div class="dashboardGrid">
       <RouterLink class="dashCard" to="/staff/orders/new">
@@ -30,7 +20,7 @@
 
 <script setup>
 import { RouterLink } from 'vue-router'
-import AccountMenu from './AccountMenu.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 </script>
 
 <style scoped>

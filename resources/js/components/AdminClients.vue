@@ -1,15 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">Klienti</h1>
-        <div class="subtitle">Klientu konti un aktivitāte servisā.</div>
-      </div>
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/admin">← Admin panelis</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar title="Klienti" subtitle="Klientu konti un aktivitāte servisā." back-to="/admin" />
 
     <div class="sectionHeader">
       <div class="sectionTitle">Klientu saraksts</div>
@@ -49,9 +40,9 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { authFetch, extractErrorMessage } from '../auth'
-import AccountMenu from './AccountMenu.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 
 const router = useRouter()
 const clients = ref([])

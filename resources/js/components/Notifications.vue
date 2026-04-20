@@ -1,16 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">Paziņojumi</h1>
-        <div class="subtitle">Aktuālie paziņojumi par pasūtījumiem, apmaksu un atsauksmēm.</div>
-      </div>
-
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar title="Paziņojumi" subtitle="Aktuālie paziņojumi par pasūtījumiem, apmaksu un atsauksmēm." />
 
     <div class="toolbar">
       <div>
@@ -81,9 +71,9 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { authFetch, currentUser, extractErrorMessage } from '../auth'
-import AccountMenu from './AccountMenu.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 
 const router = useRouter()
 

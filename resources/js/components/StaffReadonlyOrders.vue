@@ -1,16 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">{{ title }}</h1>
-        <div class="subtitle">{{ subtitle }}</div>
-      </div>
-
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar :title="title" :subtitle="subtitle" />
 
     <div class="sectionHeader">
       <div class="sectionTitle">{{ sectionTitle }}</div>
@@ -74,8 +64,8 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import AccountMenu from './AccountMenu.vue'
+import { useRouter } from 'vue-router'
+import DashboardTopbar from './DashboardTopbar.vue'
 import { authFetch, extractErrorMessage } from '../auth'
 import { formatDevice } from '../deviceFormat'
 import { statusLabel } from '../orderStatus'

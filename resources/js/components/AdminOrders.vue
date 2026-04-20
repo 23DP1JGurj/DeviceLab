@@ -1,15 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">Visi pasūtījumi</h1>
-        <div class="subtitle">Pilns pārskats par klientu pieteikumiem.</div>
-      </div>
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/admin">← Admin panelis</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar title="Visi pasūtījumi" subtitle="Pilns pārskats par klientu pieteikumiem." back-to="/admin" />
 
     <div class="sectionHeader">
       <div class="sectionTitle">Pasūtījumi</div>
@@ -93,7 +84,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import { authFetch, extractErrorMessage } from '../auth'
 import { formatDevice } from '../deviceFormat'
 import { statusLabel } from '../orderStatus'
-import AccountMenu from './AccountMenu.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 
 const router = useRouter()
 const orders = ref([])

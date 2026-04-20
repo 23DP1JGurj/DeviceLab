@@ -1,16 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">Jaunie pasūtījumi</h1>
-        <div class="subtitle">Brīvie pasūtījumi, kurus vēl nav pieņēmis neviens darbinieks.</div>
-      </div>
-
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar title="Jaunie pasūtījumi" subtitle="Brīvie pasūtījumi, kurus vēl nav pieņēmis neviens darbinieks." />
 
     <div v-if="claimMessage" class="msg ok">{{ claimMessage }}</div>
     <div v-if="claimError" class="msg">{{ claimError }}</div>
@@ -93,7 +83,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import AccountMenu from './AccountMenu.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 import { formatDevice } from '../deviceFormat'
 import { statusLabel } from '../orderStatus'

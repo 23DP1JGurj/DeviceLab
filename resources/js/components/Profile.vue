@@ -1,16 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">Profils</h1>
-        <div class="subtitle">Pārvaldi savus konta un kontaktinformācijas datus.</div>
-      </div>
-
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar title="Profils" reserve-subtitle />
 
     <section class="profileSummary">
       <div class="identityBlock">
@@ -148,8 +138,8 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import AccountMenu from './AccountMenu.vue'
+import { useRouter } from 'vue-router'
+import DashboardTopbar from './DashboardTopbar.vue'
 import { currentUser, initAuth, logout, updatePassword, updateProfile } from '../auth'
 
 const router = useRouter()

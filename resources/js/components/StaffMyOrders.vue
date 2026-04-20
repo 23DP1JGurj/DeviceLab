@@ -1,16 +1,6 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="titleBlock">
-        <h1 class="h1">Pieņemtie pasūtījumi</h1>
-        <div class="subtitle">Pasūtījumi, kurus esi pieņēmis darbā.</div>
-      </div>
-
-      <div class="topActions">
-        <RouterLink class="btn btnGhost" to="/">← Sākums</RouterLink>
-        <AccountMenu />
-      </div>
-    </div>
+    <DashboardTopbar title="Pieņemtie pasūtījumi" subtitle="Pasūtījumi, kurus esi pieņēmis darbā." />
 
     <div class="sectionHeader">
       <div>
@@ -239,7 +229,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import AccountMenu from './AccountMenu.vue'
+import DashboardTopbar from './DashboardTopbar.vue'
 import OrderStatusTimeline from './OrderStatusTimeline.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
 import { formatDevice } from '../deviceFormat'
