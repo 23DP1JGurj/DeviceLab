@@ -66,6 +66,7 @@ Route::prefix('notifications')
         Route::get('/', [NotificationController::class, 'index']);
         Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
         Route::patch('/{notification}/read', [NotificationController::class, 'markRead']);
+        Route::patch('/mark-all-read', [NotificationController::class, 'markAllRead']);
         Route::post('/read-all', [NotificationController::class, 'markAllRead']);
     });
 

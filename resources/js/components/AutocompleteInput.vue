@@ -26,7 +26,6 @@
         @mousedown.prevent="choose(suggestion)"
         @mouseenter="activeIndex = index"
       >
-        <span class="searchIcon">⌕</span>
         <span>{{ suggestion }}</span>
       </button>
     </div>
@@ -172,8 +171,7 @@ watch(
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 12px;
-  padding: 11px 12px;
+  padding: 11px 16px;
   border: 0;
   border-radius: 12px;
   background: transparent;
@@ -188,12 +186,4 @@ watch(
   background: #f1f5f9;
 }
 
-.searchIcon {
-  display: grid;
-  width: 22px;
-  height: 22px;
-  place-items: center;
-  color: #64748b;
-  font-weight: 800;
-}
 </style>

@@ -50,7 +50,6 @@
           <div class="subTitle">Pakalpojumi un detaļas</div>
           <div class="itemList">
             <div class="itemLine" v-for="item in order.items" :key="item.id">
-              <span class="itemKind">{{ item.item_type === 'service' ? 'pakalpojums' : 'detaļa' }}</span>
               <span class="itemName">{{ itemName(item) }}</span>
               <span class="itemPrice">{{ item.quantity }} × {{ formatMoney(item.unit_price) }}</span>
               <strong>{{ formatMoney(item.line_total) }}</strong>
@@ -162,8 +161,7 @@ onMounted(loadOrders)
 .itemsBlock { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(15, 23, 42, 0.08); }
 .subTitle { font-weight: 900; }
 .itemList { display: grid; gap: 8px; margin-top: 10px; }
-.itemLine { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(148, 163, 184, 0.22); background: rgba(248, 250, 252, 0.9); }
-.itemKind { color: #2563eb; font-size: 12px; font-weight: 900; }
+.itemLine { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(148, 163, 184, 0.22); background: rgba(248, 250, 252, 0.9); }
 .itemName { min-width: 0; font-weight: 800; }
 .itemPrice { color: #64748b; }
 .btn { border: 1px solid rgba(15, 23, 42, 0.14); background: #fff; color: #0f172a; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 800; text-decoration: none; }

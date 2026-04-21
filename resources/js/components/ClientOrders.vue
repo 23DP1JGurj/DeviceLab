@@ -183,8 +183,8 @@
     <section v-if="showHistory" class="ordersSection">
       <div class="sectionHeader">
         <div>
-          <div class="sectionTitle">Mani pasūtījumi</div>
-          <div class="sectionHint">Pārskati savus jaunākos servisa pieteikumus.</div>
+          <div class="sectionTitle">{{ ordersSectionTitle }}</div>
+          <div class="sectionHint">{{ ordersSectionHint }}</div>
         </div>
         <div class="muted">Kopā: {{ total }}</div>
       </div>
@@ -220,7 +220,7 @@
         </div>
 
         <div v-else-if="orders.length === 0" class="card stateCard">
-          <div class="muted">{{ hasActiveFilters ? 'Pēc filtriem pasūtījumi netika atrasti.' : 'Pasūtījumu vēl nav.' }}</div>
+          <div class="muted">{{ hasActiveFilters ? 'Pēc filtriem pasūtījumi netika atrasti.' : emptyOrdersText }}</div>
         </div>
 
         <div class="card orderCard" v-for="order in orders" :key="order.id">
@@ -232,27 +232,26 @@
               </div>
 
               <div class="orderDescription">{{ order.problem_description || '—' }}</div>
+
+              <div class="chips">
+                <span class="chip">Filiāle: {{ order.branch?.name || order.branch_id }}</span>
+                <span class="chip">Ierīce: {{ orderDeviceLabel(order.device) }}</span>
+                <span class="chip" :class="order.assigned_staff ? 'chipAssigned' : 'chipUnassigned'">
+                  Darbinieks: {{ order.assigned_staff?.name || 'nav piešķirts' }}
+                </span>
+                <span class="chip">Izveidots: {{ formatDate(order.created_at) }}</span>
+              </div>
             </div>
 
-            <div class="cost">
+            <div class="orderActionColumn">
               <div class="muted small">Galīgā summa</div>
               <div class="costValue">{{ order.final_cost != null ? formatMoney(order.final_cost) : '—' }}</div>
+              <RouterLink class="btn btnPrimary actionOpenButton" :to="`/orders/${order.id}`">Atvērt</RouterLink>
             </div>
           </div>
 
-          <div class="chips">
-            <span class="chip">Filiāle: {{ order.branch?.name || order.branch_id }}</span>
-            <span class="chip">Ierīce: {{ orderDeviceLabel(order.device) }}</span>
-            <span class="chip" :class="order.assigned_staff ? 'chipAssigned' : 'chipUnassigned'">
-              Darbinieks: {{ order.assigned_staff?.name || 'nav piešķirts' }}
-            </span>
-            <span class="chip">Izveidots: {{ formatDate(order.created_at) }}</span>
-          </div>
-
-          <div class="actions compactActions">
-            <RouterLink class="btn btnPrimary" :to="`/orders/${order.id}`">Atvērt</RouterLink>
+          <div v-if="canCancelOrder(order)" class="actions compactActions">
             <button
-              v-if="canCancelOrder(order)"
               class="btn btnDanger"
               type="button"
               @click="cancelOrder(order)"
@@ -280,29 +279,13 @@
             <option value="phone">Telefons</option>
             <option value="laptop">Portatīvais dators</option>
             <option value="tablet">Planšete</option>
-            <option value="desktop_pc">Stacionārais dators</option>
-            <option value="pc_component">Datora komponente</option>
             <option value="other">Cits</option>
-          </select>
-        </label>
-
-        <label v-if="deviceForm.type === 'pc_component'" class="field mt12">
-          <div class="label">Komponentes tips</div>
-          <select class="control" v-model="deviceForm.component_type">
-            <option value="CPU">CPU</option>
-            <option value="GPU">GPU</option>
-            <option value="Motherboard">Motherboard</option>
-            <option value="RAM">RAM</option>
-            <option value="SSD/HDD">SSD/HDD</option>
-            <option value="PSU">PSU</option>
-            <option value="Cooling">Cooling</option>
-            <option value="Other">Other</option>
           </select>
         </label>
 
         <div class="grid2 mt12">
           <label class="field">
-            <div class="label">{{ deviceForm.type === 'desktop_pc' ? 'Ražotājs' : 'Zīmols' }}</div>
+            <div class="label">Zīmols</div>
             <AutocompleteInput
               v-model.trim="deviceForm.brand"
               :suggestions="brandSuggestions"
@@ -313,7 +296,7 @@
           </label>
 
           <label class="field">
-            <div class="label">{{ deviceForm.type === 'desktop_pc' ? 'Modelis / konfigurācijas nosaukums' : 'Modelis' }}</div>
+            <div class="label">Modelis</div>
             <AutocompleteInput
               v-model.trim="deviceForm.model"
               :suggestions="modelSuggestions"
@@ -322,11 +305,6 @@
             />
           </label>
         </div>
-
-        <label v-if="deviceForm.type === 'desktop_pc'" class="field mt12">
-          <div class="label">Papildu informācija / specifikācija</div>
-          <textarea class="control textarea smallTextarea" v-model.trim="deviceForm.specs" rows="3"></textarea>
-        </label>
 
         <label class="field mt12">
           <div class="label">Sērijas numurs</div>
@@ -365,7 +343,7 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'all',
-    validator: value => ['all', 'new', 'history'].includes(value),
+    validator: value => ['all', 'new', 'active', 'history'].includes(value),
   },
 })
 
@@ -375,8 +353,23 @@ const ADD_DEVICE_OPTION = '__add_device__'
 const router = useRouter()
 
 const showCreate = computed(() => props.mode === 'all' || props.mode === 'new')
-const showHistory = computed(() => props.mode === 'all' || props.mode === 'history')
-const pageTitle = computed(() => (showCreate.value && !showHistory.value ? 'Jauns pieteikums' : 'Pasūtījumu vēsture'))
+const showHistory = computed(() => props.mode === 'all' || props.mode === 'active' || props.mode === 'history')
+const pageTitle = computed(() => {
+  if (showCreate.value && !showHistory.value) return 'Jauns pieteikums'
+  if (props.mode === 'active') return 'Aktīvie pasūtījumi'
+  return 'Pasūtījumu vēsture'
+})
+const ordersSectionTitle = computed(() => (props.mode === 'active' ? 'Aktīvie pasūtījumi' : 'Mani pasūtījumi'))
+const ordersSectionHint = computed(() => (
+  props.mode === 'active'
+    ? 'Pasūtījumi, kas vēl nav pabeigti vai atcelti.'
+    : 'Pārskati savus pabeigtos un atceltos servisa pieteikumus.'
+))
+const emptyOrdersText = computed(() => (
+  props.mode === 'active'
+    ? 'Aktīvu pasūtījumu vēl nav.'
+    : 'Pasūtījumu vēl nav.'
+))
 
 const branches = ref([])
 const services = ref([])
@@ -445,10 +438,8 @@ const filters = reactive({
 
 const deviceForm = reactive({
   type: 'phone',
-  component_type: 'CPU',
   brand: '',
   model: '',
-  specs: '',
   serial_number: '',
 })
 
@@ -825,10 +816,8 @@ function applyDraft() {
 
 function resetDeviceForm() {
   deviceForm.type = 'phone'
-  deviceForm.component_type = 'CPU'
   deviceForm.brand = ''
   deviceForm.model = ''
-  deviceForm.specs = ''
   deviceForm.serial_number = ''
   deviceErrors.value = []
   modelSuggestions.value = []
@@ -914,8 +903,13 @@ async function loadOrders() {
     Object.entries(filters).forEach(([key, value]) => {
       if (value) params.set(key, value)
     })
+    const scope = props.mode === 'active' ? 'active' : (props.mode === 'history' ? 'history' : '')
+    if (scope) params.set('scope', scope)
     const query = params.toString()
-    const endpoint = showHistory.value ? '/api/my/orders/history' : '/api/my/orders'
+
+    const endpoint = props.mode === 'active' || props.mode === 'history'
+      ? '/api/client/orders'
+      : (showHistory.value ? '/api/my/orders/history' : '/api/my/orders')
     const response = await authFetch(query ? `${endpoint}?${query}` : endpoint)
 
     if (!response.ok) {
@@ -1131,10 +1125,10 @@ async function saveDevice() {
       method: 'POST',
       json: {
         type: deviceForm.type,
-        component_type: deviceForm.type === 'pc_component' ? deviceForm.component_type : null,
+        component_type: null,
         brand: deviceForm.brand,
         model: deviceForm.model,
-        specs: deviceForm.type === 'desktop_pc' ? deviceForm.specs : null,
+        specs: null,
         serial_number: deviceForm.serial_number || null,
       },
     })
@@ -1407,8 +1401,18 @@ onBeforeUnmount(() => {
 }
 .orderNum { font-weight: 900; font-size: 18px; }
 
-.cost { text-align: right; }
+.cost,
+.orderActionColumn { text-align: right; }
 .costValue { font-size: 22px; font-weight: 900; letter-spacing: -0.01em; }
+.orderActionColumn {
+  display: grid;
+  justify-items: end;
+  gap: 9px;
+}
+.actionOpenButton {
+  min-width: 112px;
+  justify-content: center;
+}
 
 .badge {
   font-size: 12px;
@@ -1554,7 +1558,9 @@ onBeforeUnmount(() => {
 @media (max-width: 920px) {
   .topbar { align-items: flex-start; flex-direction: column; }
   .orderTop { grid-template-columns: 1fr; }
-  .cost { text-align: left; }
+  .cost,
+  .orderActionColumn { text-align: left; }
+  .orderActionColumn { justify-items: stretch; }
   .grid2 { grid-template-columns: 1fr; }
   .itemRow { grid-template-columns: 1fr; }
   .summaryRow { justify-content: flex-start; }
@@ -1945,6 +1951,10 @@ onBeforeUnmount(() => {
   font-size: 26px;
 }
 
+.orderActionColumn {
+  gap: 10px;
+}
+
 .badge {
   padding: 6px 12px;
   font-size: 12px;
@@ -1953,7 +1963,7 @@ onBeforeUnmount(() => {
 }
 
 .chips {
-  margin-top: 16px;
+  margin-top: 12px;
   gap: 9px;
 }
 
@@ -2011,14 +2021,6 @@ onBeforeUnmount(() => {
 .orderItem span,
 .orderItem strong {
   white-space: nowrap;
-}
-
-.itemKind {
-  display: inline-block;
-  margin-right: 8px;
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .loadingBox,
@@ -2079,8 +2081,13 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
-  .cost {
+  .cost,
+  .orderActionColumn {
     text-align: left;
+  }
+
+  .orderActionColumn {
+    justify-items: stretch;
   }
 
   .orderItem span,

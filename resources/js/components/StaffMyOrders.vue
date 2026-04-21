@@ -106,7 +106,6 @@
 
           <div class="itemList">
             <div class="itemLine" v-for="item in order.items" :key="item.id">
-              <span class="itemKind">{{ item.item_type === 'service' ? 'pakalpojums' : 'detaļa' }}</span>
               <span class="itemName">{{ itemName(item) }}</span>
               <span class="itemPrice">{{ item.quantity }} × {{ formatMoney(item.unit_price) }}</span>
               <strong>{{ formatMoney(item.line_total) }}</strong>
@@ -651,8 +650,7 @@ watch(filters, () => {
 .itemsTotal { color: #0f172a; font-size: 22px; font-weight: 900; white-space: nowrap; }
 .subTitle { font-weight: 900; }
 .itemList { display: grid; gap: 8px; margin-top: 10px; }
-.itemLine { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(148, 163, 184, 0.22); background: rgba(248, 250, 252, 0.9); }
-.itemKind { color: #2563eb; font-size: 12px; font-weight: 900; }
+.itemLine { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(148, 163, 184, 0.22); background: rgba(248, 250, 252, 0.9); }
 .itemName { min-width: 0; font-weight: 800; }
 .itemPrice { color: #64748b; }
 .addItemPanel { display: grid; grid-template-columns: 150px minmax(0, 1fr) 120px auto; gap: 12px; align-items: end; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(15, 23, 42, 0.08); }

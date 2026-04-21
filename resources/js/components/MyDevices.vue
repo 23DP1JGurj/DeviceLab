@@ -2,9 +2,12 @@
   <div class="page">
     <DashboardTopbar title="Manas ierīces" subtitle="Pārvaldi ierīces pirms pieteikuma izveides" />
 
-    <div class="card">
+    <section class="card formCard">
       <div class="cardHead">
-        <div class="cardTitle">Pievienot ierīci</div>
+        <div>
+          <div class="cardTitle">Pievienot ierīci</div>
+          <div class="cardSubtitle">Izvēlies tipu, zīmolu un modeli.</div>
+        </div>
       </div>
 
       <div class="grid2">
@@ -14,28 +17,12 @@
             <option value="phone">Telefons</option>
             <option value="laptop">Portatīvais dators</option>
             <option value="tablet">Planšete</option>
-            <option value="desktop_pc">Stacionārais dators</option>
-            <option value="pc_component">Datora komponente</option>
             <option value="other">Cits</option>
           </select>
         </label>
 
-        <label v-if="form.type === 'pc_component'" class="field">
-          <div class="label">Komponentes tips</div>
-          <select class="control" v-model="form.component_type">
-            <option value="CPU">CPU</option>
-            <option value="GPU">GPU</option>
-            <option value="Motherboard">Motherboard</option>
-            <option value="RAM">RAM</option>
-            <option value="SSD/HDD">SSD/HDD</option>
-            <option value="PSU">PSU</option>
-            <option value="Cooling">Cooling</option>
-            <option value="Other">Cits</option>
-          </select>
-        </label>
-
         <label class="field">
-          <div class="label">{{ form.type === 'desktop_pc' ? 'Ražotājs' : 'Zīmols' }}</div>
+          <div class="label">Zīmols</div>
           <AutocompleteInput
             v-model.trim="form.brand"
             :suggestions="brandSuggestions"
@@ -48,7 +35,7 @@
 
       <div class="mt12">
         <label class="field">
-          <div class="label">{{ form.type === 'desktop_pc' ? 'Modelis / konfigurācijas nosaukums' : 'Modelis' }}</div>
+          <div class="label">Modelis</div>
           <AutocompleteInput
             v-model.trim="form.model"
             placeholder="iPhone 12..."
@@ -58,16 +45,6 @@
         </label>
       </div>
 
-      <label v-if="form.type === 'desktop_pc'" class="field mt12">
-        <div class="label">Papildu informācija / specifikācija</div>
-        <textarea class="control textarea" v-model.trim="form.specs" rows="3" placeholder="CPU, RAM, GPU, disks..."></textarea>
-      </label>
-
-      <label class="field mt12">
-        <div class="label">Sērijas numurs</div>
-        <input class="control" v-model.trim="form.serial_number" type="text" placeholder="Nav obligāts" />
-      </label>
-
       <div class="row mt16">
         <button class="btn btnPrimary" type="button" @click="createDevice" :disabled="creating">
           {{ creating ? 'Saglabā...' : 'Pievienot ierīci' }}
@@ -76,29 +53,29 @@
         <div class="msg" v-if="createError">{{ createError }}</div>
         <div class="msg ok" v-else-if="createSuccess">{{ createSuccess }}</div>
       </div>
-    </div>
+    </section>
 
-    <div class="sectionHeader">
-      <div class="sectionTitle">Manas ierīces</div>
-      <div class="muted">Kopā: {{ devices.length }}</div>
-    </div>
-
-    <div v-if="deleteError" class="msg mt12">{{ deleteError }}</div>
-
-    <div v-if="listLoading" class="card">
-      <div class="muted">Ielādējam...</div>
-    </div>
-
-    <div v-else>
-      <div v-if="listError" class="card">
-        <div class="msg">{{ listError }}</div>
+    <section class="card listCard">
+      <div class="listHead">
+        <div>
+          <div class="cardTitle">Manas ierīces</div>
+          <div class="cardSubtitle">Saglabātās ierīces pieteikumu noformēšanai.</div>
+        </div>
+        <div class="countPill">{{ devices.length }}</div>
       </div>
 
-      <div v-else-if="devices.length === 0" class="card">
-        <div class="muted">Ierīču vēl nav. Pievieno ierīci, lai izveidotu pieteikumu.</div>
+      <div v-if="deleteError" class="msg mt12">{{ deleteError }}</div>
+
+      <div v-if="listLoading" class="muted stateText">Ielādējam...</div>
+
+      <div v-else-if="listError" class="msg mt12">{{ listError }}</div>
+
+      <div v-else-if="devices.length === 0" class="emptyState">
+        Nav pievienotu ierīču.
       </div>
 
-      <div class="card deviceCard" v-for="device in devices" :key="device.id">
+      <div v-else class="deviceStack">
+        <article class="deviceCard" v-for="device in devices" :key="device.id">
         <div class="deviceTop">
           <div>
             <div class="deviceTitle">{{ formatDeviceLabel(device) }}</div>
@@ -108,8 +85,9 @@
             {{ deletingId === device.id ? 'Dzēš...' : 'Dzēst' }}
           </button>
         </div>
+        </article>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -141,20 +119,14 @@ let modelSuggestionsTimer = null
 
 const form = reactive({
   type: 'phone',
-  component_type: 'CPU',
   brand: '',
   model: '',
-  specs: '',
-  serial_number: '',
 })
 
 function resetForm() {
   form.type = 'phone'
-  form.component_type = 'CPU'
   form.brand = ''
   form.model = ''
-  form.specs = ''
-  form.serial_number = ''
   modelSuggestions.value = []
 }
 
@@ -199,11 +171,10 @@ async function createDevice() {
       method: 'POST',
       json: {
         type: form.type,
-        component_type: form.type === 'pc_component' ? form.component_type : null,
+        component_type: null,
         brand: form.brand || null,
         model: form.model || null,
-        specs: form.type === 'desktop_pc' ? form.specs : null,
-        serial_number: form.serial_number || null,
+        specs: null,
       },
     })
 
@@ -305,45 +276,22 @@ onMounted(async () => {
 }
 
 .page {
-  max-width: 980px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 22px 18px 34px;
-}
-
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
-.titleBlock { min-width: 0; }
-.h1 {
-  margin: 0;
-  font-size: 34px;
-  letter-spacing: -0.02em;
-}
-.subtitle {
-  margin-top: 6px;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.topActions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
+  padding: 22px 18px 38px;
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
-  padding: 16px;
-  margin-top: 14px;
+  border-radius: 22px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+  padding: 24px;
+}
+
+.formCard,
+.listCard {
+  margin-top: 18px;
 }
 
 .cardHead {
@@ -351,57 +299,81 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
 }
 
-.cardTitle,
-.sectionTitle {
-  font-weight: 800;
-  font-size: 16px;
+.cardTitle {
+  color: #071833;
+  font-weight: 950;
+  font-size: 22px;
+  letter-spacing: -0.02em;
 }
 
-.sectionHeader {
+.cardSubtitle {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.listHead {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-top: 18px;
-  padding: 0 2px;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.countPill {
+  min-width: 38px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+  font-weight: 900;
+  text-align: center;
 }
 
 .field { min-width: 0; }
 .label {
+  display: block;
   font-size: 12px;
   color: #475569;
   margin-bottom: 6px;
+  font-weight: 800;
 }
 .control {
   width: 100%;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 13px 15px;
+  border-radius: 15px;
   border: 1px solid rgba(15, 23, 42, 0.14);
   background: #fff;
   outline: none;
+  font: inherit;
+  color: #071833;
 }
 .control:focus {
   border-color: rgba(37, 99, 235, 0.6);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
-.textarea {
-  min-height: 92px;
-  resize: vertical;
-  line-height: 1.5;
-}
-
 .grid2 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
+  gap: 14px;
 }
 
 .deviceCard {
-  padding: 16px;
+  padding: 16px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.deviceStack {
+  display: grid;
+  gap: 12px;
 }
 
 .deviceTop {
@@ -414,16 +386,19 @@ onMounted(async () => {
 .deviceTitle {
   font-size: 18px;
   font-weight: 900;
+  color: #071833;
 }
 
 .btn {
   border: 1px solid rgba(15, 23, 42, 0.14);
   background: #fff;
   color: #0f172a;
-  padding: 10px 14px;
-  border-radius: 12px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 13px;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 850;
+  text-decoration: none;
 }
 .btn:disabled { opacity: 0.65; cursor: not-allowed; }
 
@@ -443,9 +418,10 @@ onMounted(async () => {
 }
 
 .btnDanger {
-  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
-  color: #fff;
-  border-color: rgba(220, 38, 38, 0.60);
+  min-height: 40px;
+  background: #fff1f2;
+  color: #be123c;
+  border-color: #fecdd3;
 }
 
 .row {
@@ -453,6 +429,19 @@ onMounted(async () => {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.stateText {
+  padding: 10px 0;
+}
+
+.emptyState {
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.34);
+  background: rgba(248, 250, 252, 0.72);
+  color: #64748b;
+  font-weight: 700;
 }
 
 .msg {
@@ -475,9 +464,9 @@ onMounted(async () => {
 .mt16 { margin-top: 16px; }
 
 @media (max-width: 920px) {
-  .topbar { align-items: flex-start; flex-direction: column; }
   .grid2 { grid-template-columns: 1fr; }
   .deviceTop { align-items: flex-start; flex-direction: column; }
+  .deviceTop .btn { width: 100%; }
 }
 </style>
 

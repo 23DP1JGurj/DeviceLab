@@ -6,6 +6,7 @@ import AdminOrders from '../components/AdminOrders.vue'
 import AdminReviews from '../components/AdminReviews.vue'
 import AdminStaff from '../components/AdminStaff.vue'
 import Home from '../components/Home.vue'
+import ClientActiveOrders from '../components/ClientActiveOrders.vue'
 import ClientOrderDetail from '../components/ClientOrderDetail.vue'
 import ClientNewOrder from '../components/ClientNewOrder.vue'
 import ClientOrderHistory from '../components/ClientOrderHistory.vue'
@@ -43,6 +44,7 @@ const routes = [
   { path: '/notifications', component: Notifications, meta: { requiresAuth: true } },
   { path: '/orders', redirect: '/orders/new' },
   { path: '/orders/new', component: ClientNewOrder, meta: { requiresAuth: true, roles: CLIENT_ROLES } },
+  { path: '/orders/active', component: ClientActiveOrders, meta: { requiresAuth: true, roles: CLIENT_ROLES } },
   { path: '/orders/history', component: ClientOrderHistory, meta: { requiresAuth: true, roles: CLIENT_ROLES } },
   { path: '/orders/:id', component: ClientOrderDetail, meta: { requiresAuth: true, roles: CLIENT_ROLES } },
   { path: '/profile', component: Profile, meta: { requiresAuth: true } },

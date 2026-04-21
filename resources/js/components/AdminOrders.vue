@@ -47,7 +47,7 @@
     <div v-else-if="orders.length === 0" class="card muted">{{ hasActiveFilters ? 'Pēc filtriem pasūtījumi netika atrasti.' : 'Pasūtījumu vēl nav.' }}</div>
 
     <div v-else class="stack">
-      <article class="card" v-for="order in orders" :key="order.id">
+      <article class="card orderCard" v-for="order in orders" :key="order.id">
         <div class="rowTop">
           <div class="mainText">
             <div class="titleLine">
@@ -58,20 +58,21 @@
               </span>
             </div>
             <div class="description">{{ order.problem_description || 'Apraksts nav norādīts.' }}</div>
+
+            <div class="chips">
+              <span class="chip">Klients: {{ order.user?.name || order.user_id }}</span>
+              <span class="chip">Ierīce: {{ formatDevice(order.device) }}</span>
+              <span class="chip">Filiāle: {{ order.branch?.name || order.branch_id }}</span>
+              <span class="chip">Darbinieks: {{ order.assigned_staff?.name || 'nav piešķirts' }}</span>
+              <span v-if="order.review" class="chip">Atsauksme: {{ starText(order.review.rating) }}</span>
+            </div>
           </div>
-          <div class="rightValue">{{ formatMoney(order.final_cost) }}</div>
-        </div>
 
-        <div class="chips">
-          <span class="chip">Klients: {{ order.user?.name || order.user_id }}</span>
-          <span class="chip">Ierīce: {{ formatDevice(order.device) }}</span>
-          <span class="chip">Filiāle: {{ order.branch?.name || order.branch_id }}</span>
-          <span class="chip">Darbinieks: {{ order.assigned_staff?.name || 'nav piešķirts' }}</span>
-          <span v-if="order.review" class="chip">Atsauksme: {{ starText(order.review.rating) }}</span>
-        </div>
-
-        <div class="chips">
-          <RouterLink class="btn" :to="`/admin/orders/${order.id}`">Atvērt</RouterLink>
+          <div class="orderActionColumn">
+            <div class="muted small">Galīgā summa</div>
+            <div class="rightValue">{{ formatMoney(order.final_cost) }}</div>
+            <RouterLink class="btn btnPrimary actionOpenButton" :to="`/admin/orders/${order.id}`">Atvērt</RouterLink>
+          </div>
         </div>
       </article>
     </div>

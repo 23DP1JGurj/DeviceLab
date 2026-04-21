@@ -1,65 +1,77 @@
 <template>
-  <div class="page">
-    <DashboardTopbar title="Paziņojumi" subtitle="Aktuālie paziņojumi par pasūtījumiem, apmaksu un atsauksmēm." />
+  <div class="page notificationsPage">
+    <DashboardTopbar title="Paziņojumi" subtitle="Svarīgākās ziņas par pasūtījumiem." />
 
     <div class="toolbar">
-      <div>
-        <strong>{{ unreadCount }}</strong>
-        <span class="muted"> nelasīti paziņojumi</span>
+      <div class="filterShell" role="tablist" aria-label="Paziņojumu filtrs">
+        <button :class="['filterButton', { active: scope === 'unread' }]" type="button" @click="setScope('unread')">
+          Nelasītie
+        </button>
+        <button :class="['filterButton', { active: scope === 'all' }]" type="button" @click="setScope('all')">
+          Visi
+        </button>
       </div>
 
-      <button class="btn btnSoft" type="button" :disabled="markingAll || unreadCount === 0" @click="markAllRead">
-        {{ markingAll ? 'Atzīmējam...' : 'Atzīmēt visu kā izlasītu' }}
-      </button>
+      <div class="toolbarRight">
+        <div class="unreadText">
+          <strong>{{ unreadCount }}</strong>
+          <span> nelasīti paziņojumi</span>
+        </div>
+        <button
+          v-if="scope === 'unread'"
+          class="btn btnSoft"
+          type="button"
+          :disabled="markingAll || unreadCount === 0"
+          @click="markAllRead"
+        >
+          {{ markingAll ? 'Atzīmējam...' : 'Atzīmēt visu kā izlasītu' }}
+        </button>
+      </div>
     </div>
 
-    <div v-if="loading" class="card">
+    <div v-if="loading" class="card stateCard">
       <div class="muted">Ielādējam paziņojumus...</div>
     </div>
 
-    <div v-else-if="error" class="card">
+    <div v-else-if="error" class="card stateCard">
       <div class="msg">{{ error }}</div>
     </div>
 
-    <div v-else-if="notifications.length === 0" class="card empty">
-      <div class="emptyIcon">•</div>
-      <h2>Paziņojumu vēl nav.</h2>
-      <p class="muted">Šeit parādīsies ziņas par pasūtījuma statusu, apmaksu un atsauksmēm.</p>
+    <div v-else-if="groups.length === 0" class="card empty">
+      Paziņojumu vēl nav.
     </div>
 
-    <div v-else class="noticeStack">
-      <article
-        v-for="notification in notifications"
-        :key="notification.id"
-        :class="['card', 'noticeCard', { 'is-unread': !notification.read_at }]"
-      >
-        <div class="noticeTop">
-          <div>
-            <div class="noticeTitleRow">
-              <h2>{{ notification.title }}</h2>
-              <span v-if="!notification.read_at" class="badge">Jauns</span>
+    <div v-else class="inboxStack">
+      <article class="card inboxCard" v-for="group in groups" :key="group.order_id || group.order_number">
+        <div class="orderSummary">
+          <div class="orderIdentity">
+            <div class="orderLine">
+              <h2>{{ group.order_number }}</h2>
+              <span v-if="group.unread_count > 0" class="badge">{{ group.unread_count }} jauni</span>
             </div>
-            <p>{{ notification.message }}</p>
+            <div class="muted smallText">{{ group.last_items?.length || 0 }} pēdējie paziņojumi</div>
           </div>
-          <time>{{ formatDate(notification.created_at) }}</time>
-        </div>
 
-        <div class="noticeActions">
-          <button
-            v-if="!notification.read_at"
-            class="btn btnGhost"
-            type="button"
-            :disabled="markingId === notification.id"
-            @click="markRead(notification)"
-          >
-            Atzīmēt kā izlasītu
-          </button>
+          <div class="messageList">
+            <div
+              v-for="item in group.last_items"
+              :key="item.id"
+              :class="['messageItem', { unread: !item.read_at }]"
+            >
+              <span class="messageDot" aria-hidden="true"></span>
+              <div class="messageCopy">
+                <div class="messageTitle">{{ item.title }}</div>
+                <p>{{ shortMessage(item.message) }}</p>
+              </div>
+              <time>{{ formatShortDate(item.created_at) }}</time>
+            </div>
+          </div>
 
           <button
-            v-if="notification.order_id"
-            class="btn btnPrimary"
+            v-if="group.order_id"
+            class="btn btnPrimary openButton"
             type="button"
-            @click="openOrder(notification)"
+            @click="openOrder(group)"
           >
             Atvērt pasūtījumu
           </button>
@@ -70,20 +82,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authFetch, currentUser, extractErrorMessage } from '../auth'
 import DashboardTopbar from './DashboardTopbar.vue'
 
 const router = useRouter()
 
-const notifications = ref([])
+const groups = ref([])
+const scope = ref('unread')
+const unreadCount = ref(0)
 const loading = ref(false)
 const error = ref('')
 const markingAll = ref(false)
-const markingId = ref(null)
-
-const unreadCount = computed(() => notifications.value.filter(notification => !notification.read_at).length)
 
 function notifyMenuUpdated() {
   window.dispatchEvent(new CustomEvent('devicelab:notifications-updated'))
@@ -93,12 +104,30 @@ function formatDate(value) {
   try {
     return new Date(value).toLocaleString('lv-LV')
   } catch {
-    return value
+    return value || ''
   }
 }
 
-function orderPath(notification) {
-  const orderId = notification.order_id
+function formatShortDate(value) {
+  try {
+    return new Date(value).toLocaleString('lv-LV', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return value || ''
+  }
+}
+
+function shortMessage(value) {
+  const text = String(value || '').trim()
+  return text.length > 120 ? `${text.slice(0, 117)}...` : text
+}
+
+function orderPath(group) {
+  const orderId = group.order_id
 
   if (!orderId) return ''
   if (currentUser.value?.role === 'admin') return `/admin/orders/${orderId}`
@@ -112,7 +141,11 @@ async function loadNotifications() {
   error.value = ''
 
   try {
-    const response = await authFetch('/api/notifications')
+    const params = new URLSearchParams({
+      scope: scope.value,
+      group: 'order',
+    })
+    const response = await authFetch(`/api/notifications?${params}`)
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -123,65 +156,58 @@ async function loadNotifications() {
       throw new Error(await extractErrorMessage(response, 'Neizdevās ielādēt paziņojumus.'))
     }
 
-    notifications.value = await response.json()
+    const json = await response.json()
+    groups.value = json.data ?? []
+    unreadCount.value = Number(json.unread_count || 0)
     notifyMenuUpdated()
   } catch (err) {
-    notifications.value = []
+    groups.value = []
     error.value = (err?.message || 'Neizdevās ielādēt paziņojumus.').slice(0, 260)
   } finally {
     loading.value = false
   }
 }
 
-async function markRead(notification) {
-  if (notification.read_at) return notification
+async function setScope(value) {
+  if (scope.value === value) return
+  scope.value = value
+  await loadNotifications()
+}
 
-  markingId.value = notification.id
+async function markNotificationRead(notification) {
+  if (notification.read_at) return
 
-  try {
-    const response = await authFetch(`/api/notifications/${notification.id}/read`, {
-      method: 'PATCH',
-    })
+  await authFetch(`/api/notifications/${notification.id}/read`, {
+    method: 'PATCH',
+  }).catch(() => null)
+}
 
-    if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, 'Neizdevās atzīmēt paziņojumu.'))
-    }
+async function openOrder(group) {
+  await Promise.all((group.last_items || []).map(markNotificationRead))
+  notifyMenuUpdated()
 
-    const updated = await response.json()
-    const index = notifications.value.findIndex(item => item.id === notification.id)
-
-    if (index !== -1) {
-      notifications.value[index] = updated
-    }
-
-    notifyMenuUpdated()
-    return updated
-  } catch (err) {
-    error.value = (err?.message || 'Neizdevās atzīmēt paziņojumu.').slice(0, 260)
-    return notification
-  } finally {
-    markingId.value = null
+  const path = orderPath(group)
+  if (path) {
+    await router.push(path)
   }
 }
 
 async function markAllRead() {
+  if (scope.value !== 'unread' || unreadCount.value === 0) return
+
   markingAll.value = true
   error.value = ''
 
   try {
-    const response = await authFetch('/api/notifications/read-all', {
-      method: 'POST',
+    const response = await authFetch('/api/notifications/mark-all-read', {
+      method: 'PATCH',
     })
 
     if (!response.ok) {
       throw new Error(await extractErrorMessage(response, 'Neizdevās atzīmēt paziņojumus.'))
     }
 
-    const now = new Date().toISOString()
-    notifications.value = notifications.value.map(notification => ({
-      ...notification,
-      read_at: notification.read_at || now,
-    }))
+    await loadNotifications()
     notifyMenuUpdated()
   } catch (err) {
     error.value = (err?.message || 'Neizdevās atzīmēt paziņojumus.').slice(0, 260)
@@ -190,54 +216,272 @@ async function markAllRead() {
   }
 }
 
-async function openOrder(notification) {
-  await markRead(notification)
-
-  const path = orderPath(notification)
-  if (path) {
-    await router.push(path)
-  }
-}
-
 onMounted(loadNotifications)
 </script>
 
 <style scoped>
 :global(*), :global(*::before), :global(*::after) { box-sizing: border-box; }
-:global(body) { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue"; background: radial-gradient(1200px 600px at 20% 0%, #eef6ff 0%, #f6f8fb 45%, #f7f7f7 100%); color: #0f172a; }
-.page { max-width: 1080px; margin: 0 auto; padding: 22px 18px 34px; }
-.topbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 16px; }
-.titleBlock { min-width: 0; }
-.h1 { margin: 0; font-size: 38px; letter-spacing: -0.03em; color: #061735; }
-.subtitle, .muted { color: #64748b; font-size: 14px; }
-.subtitle { margin-top: 6px; }
-.topActions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin: 18px 0; padding: 16px 18px; border: 1px solid rgba(15, 23, 42, 0.08); border-radius: 18px; background: rgba(255, 255, 255, 0.72); box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06); }
-.card { background: rgba(255, 255, 255, 0.96); border: 1px solid rgba(15, 23, 42, 0.08); border-radius: 18px; box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07); padding: 18px; }
-.noticeStack { display: grid; gap: 14px; }
-.noticeCard { position: relative; transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease; }
-.noticeCard:hover { transform: translateY(-1px); border-color: rgba(37, 99, 235, 0.18); box-shadow: 0 20px 42px rgba(15, 23, 42, 0.10); }
-.noticeCard.is-unread { border-color: rgba(37, 99, 235, 0.22); background: linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.98)); }
-.noticeTop { display: flex; justify-content: space-between; gap: 16px; }
-.noticeTitleRow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.noticeTitleRow h2 { margin: 0; font-size: 18px; color: #061735; }
-.noticeTop p { margin: 8px 0 0; color: #475569; line-height: 1.55; }
-.noticeTop time { color: #64748b; font-size: 13px; white-space: nowrap; }
-.noticeActions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-.badge { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 999px; color: #1d4ed8; background: rgba(37, 99, 235, 0.10); border: 1px solid rgba(37, 99, 235, 0.18); font-size: 12px; font-weight: 900; }
-.btn { border: 1px solid rgba(15, 23, 42, 0.14); background: #fff; color: #0f172a; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 850; text-decoration: none; transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease; }
-.btn:hover:not(:disabled) { transform: translateY(-1px); border-color: rgba(37, 99, 235, 0.24); }
+:global(body) {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue";
+  background: radial-gradient(1200px 600px at 20% 0%, #eef6ff 0%, #f6f8fb 45%, #f7f7f7 100%);
+  color: #0f172a;
+}
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 22px 18px 34px;
+}
+
+.notificationsPage .toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.notificationsPage .filterShell {
+  display: inline-flex;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 999px;
+  background: #eef4fb;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.notificationsPage .filterButton {
+  appearance: none;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  line-height: 1;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.notificationsPage .filterButton:hover {
+  color: #1d4ed8;
+}
+
+.notificationsPage .filterButton.active {
+  color: #0f172a;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.notificationsPage .toolbarRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.notificationsPage .unreadText {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.notificationsPage .unreadText strong {
+  color: #071833;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07);
+  padding: 18px;
+}
+
+.stateCard,
+.empty {
+  color: #64748b;
+}
+
+.empty {
+  padding: 28px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.inboxStack {
+  display: grid;
+  gap: 14px;
+}
+
+.notificationsPage .inboxCard {
+  padding: 20px 22px;
+}
+
+.notificationsPage .orderSummary {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.8fr) minmax(0, 1.6fr) auto;
+  align-items: center;
+  gap: 22px;
+}
+
+.notificationsPage .orderIdentity {
+  min-width: 0;
+}
+
+.notificationsPage .orderLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.notificationsPage .orderLine h2 {
+  margin: 0;
+  color: #071833;
+  font-size: 21px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
+.notificationsPage .smallText {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.notificationsPage .badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.10);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.notificationsPage .messageList {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.notificationsPage .messageItem {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 11px;
+  border-radius: 14px;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.notificationsPage .messageItem.unread {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.notificationsPage .messageDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.notificationsPage .messageItem.unread .messageDot {
+  background: #2f7cff;
+}
+
+.notificationsPage .messageCopy {
+  min-width: 0;
+}
+
+.notificationsPage .messageTitle {
+  color: #071833;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notificationsPage .messageItem p {
+  margin: 2px 0 0;
+  color: #475569;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notificationsPage .messageItem time {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.notificationsPage .openButton {
+  min-width: 154px;
+  justify-content: center;
+  text-align: center;
+}
+
+.muted { color: #64748b; }
+.msg { color: #b91c1c; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.18); padding: 10px 12px; border-radius: 12px; font-size: 13px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: #fff;
+  color: #0f172a;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 850;
+  text-decoration: none;
+}
+
 .btn:disabled { opacity: 0.58; cursor: not-allowed; }
 .btnPrimary { color: #fff; background: linear-gradient(135deg, #2f7cff, #1d4ed8); border-color: transparent; box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22); }
 .btnSoft { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.16); color: #1d4ed8; }
-.btnGhost { background: rgba(255, 255, 255, 0.70); }
-.empty { text-align: center; padding: 34px 18px; }
-.empty h2 { margin: 8px 0 6px; font-size: 22px; }
-.emptyIcon { width: 42px; height: 42px; margin: 0 auto; display: grid; place-items: center; border-radius: 999px; color: #2563eb; background: rgba(37, 99, 235, 0.10); font-size: 30px; line-height: 1; }
-.msg { color: #b91c1c; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.18); padding: 10px 12px; border-radius: 12px; font-size: 13px; }
+
 @media (max-width: 760px) {
-  .topbar, .toolbar, .noticeTop { align-items: flex-start; flex-direction: column; }
-  .h1 { font-size: 32px; }
-  .noticeTop time { white-space: normal; }
+  .notificationsPage .toolbar,
+  .notificationsPage .orderSummary {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .notificationsPage .toolbarRight,
+  .notificationsPage .filterShell,
+  .notificationsPage .btn {
+    width: 100%;
+  }
+
+  .notificationsPage .filterButton {
+    flex: 1;
+  }
+
+  .notificationsPage .messageItem {
+    grid-template-columns: 8px minmax(0, 1fr);
+  }
+
+  .notificationsPage .messageItem time {
+    grid-column: 2;
+    white-space: normal;
+  }
 }
 </style>

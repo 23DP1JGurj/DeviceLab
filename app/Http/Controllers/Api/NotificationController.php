@@ -11,10 +11,46 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $limit = min(max((int) $request->input('limit', 50), 1), 50);
-
-        return UserNotification::query()
+        $query = UserNotification::query()
             ->with('order:id,order_number,status')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $request->user()->id);
+
+        if ($request->input('scope', 'all') === 'unread') {
+            $query->whereNull('read_at');
+        }
+
+        if ($request->user()->role === 'client') {
+            $query->whereIn('type', $this->clientImportantTypes());
+        }
+
+        if ($request->input('group') === 'order') {
+            $notifications = $query
+                ->latest()
+                ->limit($limit)
+                ->get();
+
+            $groups = $notifications
+                ->groupBy(fn (UserNotification $notification) => $notification->order_id ?: 'general')
+                ->map(function ($items) {
+                    $first = $items->first();
+
+                    return [
+                        'order_id' => $first->order_id,
+                        'order_number' => $first->order?->order_number ?? 'Paziņojumi',
+                        'order_status' => $first->order?->status,
+                        'unread_count' => $items->whereNull('read_at')->count(),
+                        'last_items' => $items->take(3)->values(),
+                    ];
+                })
+                ->values();
+
+            return response()->json([
+                'data' => $groups,
+                'unread_count' => $this->unreadQuery($request)->count(),
+            ]);
+        }
+
+        return $query
             ->latest()
             ->limit($limit)
             ->get();
@@ -23,10 +59,7 @@ class NotificationController extends Controller
     public function unreadCount(Request $request)
     {
         return response()->json([
-            'unread_count' => UserNotification::query()
-                ->where('user_id', $request->user()->id)
-                ->whereNull('read_at')
-                ->count(),
+            'unread_count' => $this->unreadQuery($request)->count(),
         ]);
     }
 
@@ -51,5 +84,28 @@ class NotificationController extends Controller
             ->update(['read_at' => now()]);
 
         return response()->json(['ok' => true]);
+    }
+
+    private function unreadQuery(Request $request)
+    {
+        $query = UserNotification::query()
+            ->where('user_id', $request->user()->id)
+            ->whereNull('read_at');
+
+        if ($request->user()->role === 'client') {
+            $query->whereIn('type', $this->clientImportantTypes());
+        }
+
+        return $query;
+    }
+
+    private function clientImportantTypes(): array
+    {
+        return [
+            'order_claimed',
+            'order_status_changed',
+            'order_ready',
+            'order_paid',
+        ];
     }
 }

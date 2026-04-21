@@ -36,9 +36,26 @@ class OrderController extends Controller
         'cancelled',
     ];
 
+    private const CLIENT_ACTIVE_STATUSES = [
+        'new',
+        'confirmed',
+        'diagnostics',
+        'in_progress',
+        'waiting_parts',
+        'ready',
+    ];
+
     public function clientIndex(Request $request)
     {
-        return $this->applySort($this->buildOrdersQuery($request, $request->user(), true), $request)->paginate(10);
+        $query = $this->buildOrdersQuery($request, $request->user(), true);
+
+        if ($request->input('scope') === 'active') {
+            $query->whereIn('status', self::CLIENT_ACTIVE_STATUSES);
+        } elseif ($request->input('scope') === 'history') {
+            $query->whereIn('status', self::HISTORY_STATUSES);
+        }
+
+        return $this->applySort($query, $request)->paginate(10);
     }
 
     public function index(Request $request)

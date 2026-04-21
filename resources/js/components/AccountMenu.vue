@@ -50,6 +50,9 @@
           <RouterLink v-if="isClient" class="accItem" to="/orders/new" @click="closeMenu">
             Jauns pieteikums
           </RouterLink>
+          <RouterLink v-if="isClient" class="accItem" to="/orders/active" @click="closeMenu">
+            Aktīvie pasūtījumi
+          </RouterLink>
           <RouterLink v-if="isClient" class="accItem" to="/orders/history" @click="closeMenu">
             Pasūtījumu vēsture
           </RouterLink>

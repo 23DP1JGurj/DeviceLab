@@ -110,11 +110,30 @@
   gap: 16px;
 }
 
+.orderCard .rowTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
 .mainText { min-width: 0; }
 .titleLine { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .itemTitle { color: #071833; font-size: 20px; font-weight: 950; }
 .description { margin-top: 8px; color: #475569; line-height: 1.5; }
 .rightValue { text-align: right; color: #071833; font-size: 24px; font-weight: 950; }
+.small { font-size: 12px; font-weight: 800; }
+.orderActionColumn {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  text-align: right;
+  min-width: 132px;
+}
+.actionOpenButton {
+  min-width: 112px;
+  justify-content: center;
+  text-align: center;
+}
 .adminActions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 
 .chips {
@@ -154,6 +173,8 @@
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid rgba(15, 23, 42, 0.14);
   background: #fff;
   color: #0f172a;
@@ -167,6 +188,12 @@
 .btnSmall { padding: 7px 10px; font-size: 12px; }
 .btnGhost { background: transparent; }
 .btnSoft { background: #f8fafc; }
+.btnPrimary {
+  color: #fff;
+  background: linear-gradient(135deg, #2f7cff, #1d4ed8);
+  border-color: transparent;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
+}
 .msg { color: #b91c1c; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.18); padding: 9px 11px; border-radius: 12px; font-size: 13px; }
 .stars { color: #f59e0b; font-size: 21px; letter-spacing: 1px; }
 .comment { margin: 10px 0 0; color: #334155; line-height: 1.55; }
@@ -175,5 +202,7 @@
   .grid, .grid.two, .grid.three { grid-template-columns: 1fr; }
   .filterBar { grid-template-columns: 1fr; }
   .topbar, .rowTop { align-items: flex-start; flex-direction: column; }
+  .orderCard .rowTop { grid-template-columns: 1fr; }
   .rightValue { text-align: left; }
+  .orderActionColumn { justify-items: stretch; text-align: left; width: 100%; }
 }

@@ -57,7 +57,6 @@
             <div v-if="(order.items || []).length === 0" class="muted mt12">Pozīciju vēl nav.</div>
             <div v-else class="itemList">
               <div class="itemLine" v-for="item in order.items" :key="item.id">
-                <span class="itemKind">{{ item.item_type === 'service' ? 'Pakalpojums' : 'Detaļa' }}</span>
                 <b>{{ itemName(item) }}</b>
                 <span>{{ item.quantity }} × {{ formatMoney(item.unit_price) }}</span>
                 <strong>{{ formatMoney(item.line_total) }}</strong>
@@ -308,8 +307,7 @@ onMounted(loadOrder)
 .attachmentThumb img { display: block; width: 100%; height: 120px; object-fit: cover; background: #f1f5f9; }
 .attachmentThumb span { display: block; overflow: hidden; padding: 9px 10px; color: #334155; font-size: 12px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .itemList { display: grid; gap: 8px; margin-top: 14px; }
-.itemLine { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 12px; padding: 11px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
-.itemKind { color: #2563eb; font-size: 12px; font-weight: 900; }
+.itemLine { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 12px; padding: 11px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
 .badge { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(148,163,184,.3); background: rgba(148,163,184,.18); font-size: 12px; font-weight: 900; }
 .badgePaid { color: #166534; background: #dcfce7; border-color: #bbf7d0; }
 .badgePending { color: #92400e; background: #fef3c7; border-color: #fde68a; }
