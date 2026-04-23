@@ -55,6 +55,7 @@ const routes = [
   { path: '/staff/orders/all', component: StaffAllOrders, meta: { requiresAuth: true, roles: ['admin'] } },
   { path: '/staff/orders/:id', component: StaffOrderDetail, meta: { requiresAuth: true, roles: STAFF_ROLES } },
   { path: '/staff/reviews', component: StaffReviews, meta: { requiresAuth: true, roles: STAFF_ROLES } },
+  { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 const router = createRouter({
