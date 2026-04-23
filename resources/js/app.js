@@ -4,7 +4,7 @@ import { initAuth } from './auth'
 import router from './router'
 
 initAuth()
-  .catch(() => null)
-  .finally(() => {
-    createApp(App).use(router).mount('#app')
-  })
+    .catch(() => null)
+    .finally(() => {
+        createApp(App).use(router).mount('#app')
+    })
