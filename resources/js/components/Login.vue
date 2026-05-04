@@ -8,31 +8,31 @@
       <div v-if="serverError" class="authAlert">{{ serverError }}</div>
 
       <div class="authStack">
-        <label class="authField wide">
-          <span class="authLabel">E-pasts</span>
+        <label class="floatingField">
           <input
-            class="authControl"
+            class="floatingInput"
             :class="{ hasError: fieldErrors.email?.length }"
             v-model.trim="form.email"
             type="email"
             autocomplete="email"
-            placeholder="client@devicelab.local"
+            placeholder=" "
             required
           />
+          <span class="floatingLabel">E-pasts</span>
           <span v-if="fieldErrors.email?.[0]" class="authFieldError">{{ fieldErrors.email[0] }}</span>
         </label>
 
-        <label class="authField wide">
-          <span class="authLabel">Parole</span>
+        <label class="floatingField">
           <input
-            class="authControl"
+            class="floatingInput"
             :class="{ hasError: fieldErrors.password?.length || fieldErrors.email?.length }"
             v-model="form.password"
             type="password"
             autocomplete="current-password"
-            placeholder="••••••••"
+            placeholder=" "
             required
           />
+          <span class="floatingLabel">Parole</span>
           <span v-if="fieldErrors.password?.[0]" class="authFieldError">{{ fieldErrors.password[0] }}</span>
         </label>
       </div>

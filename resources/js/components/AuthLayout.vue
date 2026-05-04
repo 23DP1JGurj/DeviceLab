@@ -4,13 +4,7 @@
       <RouterLink class="authBackLink" to="/">← DeviceLab</RouterLink>
 
       <section class="authCard">
-        <div class="authBrand">
-          <strong>DeviceLab</strong>
-        </div>
-
-        <div class="authEyebrow">{{ eyebrow }}</div>
         <h1 class="authTitle">{{ title }}</h1>
-        <p class="authSubtitle">{{ subtitle }}</p>
 
         <slot />
       </section>
@@ -22,9 +16,9 @@
 import { RouterLink } from 'vue-router'
 
 defineProps({
-  eyebrow: { type: String, required: true },
+  eyebrow: { type: String, default: '' },
   title: { type: String, required: true },
-  subtitle: { type: String, required: true },
+  subtitle: { type: String, default: '' },
   variant: { type: String, default: 'login' },
 })
 </script>
@@ -74,36 +68,12 @@ defineProps({
   padding: 44px;
 }
 
-.authBrand {
-  display: block;
-  margin-bottom: 24px;
-  color: #071833;
-  font-size: 18px;
-  font-weight: 950;
-}
-
-.authEyebrow {
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 950;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
 .authTitle {
-  margin: 12px 0 10px;
+  margin: 0 0 28px;
   color: #071833;
   font-size: clamp(34px, 5vw, 48px);
   line-height: 1.04;
   letter-spacing: -0.045em;
-}
-
-.authSubtitle {
-  max-width: 560px;
-  margin: 0 0 28px;
-  color: #64748b;
-  font-size: 16px;
-  line-height: 1.6;
 }
 
 :global(.authForm) {
@@ -184,6 +154,77 @@ defineProps({
   color: #b91c1c;
   font-size: 13px;
   line-height: 1.45;
+}
+
+:global(.floatingField) {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+:global(.floatingInput) {
+  width: 100%;
+  min-width: 0;
+  min-height: 60px;
+  padding: 22px 16px 9px;
+  border: 1px solid #d8e0ee;
+  border-radius: 16px;
+  background: #fff;
+  outline: none;
+  color: #071833;
+  font: inherit;
+  font-size: 16px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+:global(.floatingInput:focus) {
+  border-color: rgba(37, 99, 235, 0.58);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+:global(.floatingInput.hasError) {
+  border-color: rgba(239, 68, 68, 0.42);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
+}
+
+:global(.floatingLabel) {
+  position: absolute;
+  left: 14px;
+  top: 20px;
+  max-width: calc(100% - 28px);
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #fff;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.15;
+  pointer-events: none;
+  transform-origin: left top;
+  transition:
+    top 0.16s ease,
+    color 0.16s ease,
+    font-size 0.16s ease,
+    transform 0.16s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global(.floatingInput:focus + .floatingLabel),
+:global(.floatingInput:not(:placeholder-shown) + .floatingLabel) {
+  top: -7px;
+  color: #1d4ed8;
+  font-size: 12px;
+  transform: translateY(0);
+}
+
+:global(.floatingInput.hasError + .floatingLabel) {
+  color: #b91c1c;
+}
+
+:global(.floatingField .authFieldError) {
+  margin-top: 7px;
 }
 
 :global(.authSubmit) {
