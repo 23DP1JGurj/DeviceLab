@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
             DemoSeeder::class,
             StaffDemoSeeder::class,
             PhoneModelSeeder::class,
+            LaptopModelSeeder::class,
+            TabletModelSeeder::class,
             DeviceModelSuggestionSeeder::class,
         ]);
     }
