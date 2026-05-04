@@ -200,9 +200,12 @@
       <div class="services-grid">
         <article class="card">
           <div class="iconbox" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M4 6h16v12H4z" stroke="rgba(47,124,255,1)" stroke-width="2" />
-              <path d="M8 18v2h8v-2" stroke="rgba(47,124,255,1)" stroke-width="2" />
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3.5" y="5" width="11" height="8" rx="2"/>
+              <path d="M6.5 16h5"/>
+              <path d="M9 13v3"/>
+              <circle cx="16.5" cy="15.5" r="3.5"/>
+              <path d="m19.2 18.2 2.3 2.3"/>
             </svg>
           </div>
           <h3>Diagnostika</h3>
@@ -211,10 +214,11 @@
 
         <article class="card">
           <div class="iconbox" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M7 4h10v16H7z" stroke="rgba(47,124,255,1)" stroke-width="2"/>
-              <path d="M9 7h6" stroke="rgba(47,124,255,1)" stroke-width="2"/>
-              <path d="M10 20h4" stroke="rgba(47,124,255,1)" stroke-width="2"/>
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="7" y="3.5" width="10" height="17" rx="2.5"/>
+              <path d="M10 7.5h4"/>
+              <path d="m9 12 3-2 3 4"/>
+              <path d="M11 18h2"/>
             </svg>
           </div>
           <h3>Ekrāna maiņa</h3>
@@ -223,9 +227,10 @@
 
         <article class="card">
           <div class="iconbox" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M7 7h10v10H7z" stroke="rgba(47,124,255,1)" stroke-width="2"/>
-              <path d="M9 3v4m6-4v4M9 17v4m6-4v4" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="8" width="14" height="8" rx="2"/>
+              <path d="M18 10.5h1.5c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5H18"/>
+              <path d="m11.5 6-2 4h3l-2 4"/>
             </svg>
           </div>
           <h3>Akumulatora maiņa</h3>
@@ -234,10 +239,10 @@
 
         <article class="card">
           <div class="iconbox" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2v20" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M7 7c2-2 8-2 10 0" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M7 17c2 2 8 2 10 0" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 4.5c-2 2.2-3 4-3 6a3 3 0 0 0 6 0c0-2-1-3.8-3-6Z"/>
+              <path d="M15 5.5 20 8v4.5c0 3.4-1.9 5.9-5 7-3.1-1.1-5-3.6-5-7V8l5-2.5Z"/>
+              <path d="m13 12.5 1.4 1.4 2.8-3"/>
             </svg>
           </div>
           <h3>Tīrīšana pēc mitruma</h3>
@@ -246,10 +251,13 @@
 
         <article class="card">
           <div class="iconbox" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M4 5h16v10H4z" stroke="rgba(47,124,255,1)" stroke-width="2"/>
-              <path d="M7 19h10" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M9 15v4m6-4v4" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3.5" y="5" width="17" height="10.5" rx="2"/>
+              <path d="M6 19h12"/>
+              <path d="M9 15.5 8 19"/>
+              <path d="M15 15.5 16 19"/>
+              <path d="m14.5 9.5 1.8-1.8 1.5 1.5-1.8 1.8"/>
+              <path d="m12.8 11.2 1.7-1.7"/>
             </svg>
           </div>
           <h3>Portatīvo datoru remonts</h3>
@@ -258,9 +266,11 @@
 
         <article class="card">
           <div class="iconbox" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M12 3l8 4v6c0 5-3 8-8 9-5-1-8-4-8-9V7l8-4z" stroke="rgba(47,124,255,1)" stroke-width="2"/>
-              <path d="M9 12l2 2 4-4" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
+            <svg viewBox="0 0 24 24" fill="none">
+              <ellipse cx="12" cy="6" rx="6" ry="2.7"/>
+              <path d="M6 6v5c0 1.5 2.7 2.7 6 2.7s6-1.2 6-2.7V6"/>
+              <path d="M6 11v5c0 1.5 2.7 2.7 6 2.7s6-1.2 6-2.7v-5"/>
+              <path d="m9 16.5 2 2 4-4"/>
             </svg>
           </div>
           <h3>Datu atjaunošana</h3>
@@ -269,10 +279,12 @@
 
         <article class="card">
           <div class="iconbox" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M6 12h12" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M12 6v12" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M4 4h16v16H4z" stroke="rgba(47,124,255,1)" stroke-width="2"/>
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="8" width="16" height="8" rx="2"/>
+              <path d="M8 8V5.5"/>
+              <path d="M16 8V5.5"/>
+              <path d="M9 12h6"/>
+              <path d="M12 16v3"/>
             </svg>
           </div>
           <h3>Ligzdu maiņa</h3>
@@ -281,10 +293,14 @@
 
         <article class="card">
           <div class="iconbox" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12a7 7 0 0 1 14 0" stroke="rgba(47,124,255,1)" stroke-width="2"/>
-              <path d="M8 12h8" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M12 12v7" stroke="rgba(47,124,255,1)" stroke-width="2" stroke-linecap="round"/>
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 3.5v3"/>
+              <path d="M12 17.5v3"/>
+              <path d="M3.5 12h3"/>
+              <path d="M17.5 12h3"/>
+              <path d="m6 6 2.1 2.1"/>
+              <path d="m15.9 15.9 2.1 2.1"/>
             </svg>
           </div>
           <h3>Profilaktiskā apkope</h3>
@@ -358,10 +374,10 @@
   <!-- ===== Pricing ===== -->
   <section class="section pricing" id="prices">
     <div class="container">
-      <h2 class="section-title">Aptuvenās cenas</h2>
+      <h2 class="section-title">Piemēra cenas</h2>
       <p class="section-lead">
-        Gala cena atkarīga no modeļa un ierīces stāvokļa. Zemāk — orientieri, lai saprastu cenu līmeni.
-        Precīzu cenu pateiksim pēc diagnostikas.
+        Gala cena ir atkarīga no ierīces modeļa, detaļu pieejamības un bojājuma stāvokļa.
+        Precīzu summu saskaņojam pēc diagnostikas.
       </p>
 
       <div class="pricing-grid">
@@ -369,55 +385,61 @@
           <div class="price-top">
             <div>
               <p class="price-title">Diagnostika</p>
-              <p class="price">15€ <small>no</small></p>
+              <p class="price">no 15€</p>
             </div>
           </div>
           <ul class="ul">
             <li>Bojājuma cēloņa noteikšana</li>
-            <li>Cenas un termiņu novērtējums</li>
+            <li>Cenas un termiņa novērtējums</li>
             <li>Ieteikumi remontam</li>
           </ul>
-          <div class="price-actions">
-            <a class="btn dark" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
-            <a class="btn" href="#contacts">Kontakti</a>
-          </div>
         </div>
 
         <div class="price-card featured">
           <div class="price-top">
             <div>
-              <p class="price-title">Ekrāna maiņa</p>
-              <p class="price">45€ <small>no (darbs)</small></p>
+              <p class="price-title">Ekrāna vai akumulatora maiņa</p>
+              <p class="price">Atkarīga no modeļa</p>
             </div>
           </div>
           <ul class="ul">
-            <li>Moduļa piemeklēšana pēc modeļa</li>
-            <li>Rūpīga uzstādīšana</li>
-            <li>Skāriena un attēla pārbaude</li>
+            <li>Detaļa tiek piemeklēta konkrētam modelim</li>
+            <li>Darbs un detaļa var būtiski atšķirties cenā</li>
+            <li>Pēc maiņas pārbaudām ekrānu vai uzlādi</li>
           </ul>
-          <div class="price-actions">
-            <a class="btn dark" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
-            <a class="btn" href="#services">Pakalpojumi</a>
-          </div>
         </div>
 
         <div class="price-card">
           <div class="price-top">
             <div>
               <p class="price-title">Tīrīšana / apkope</p>
-              <p class="price">35€ <small>no</small></p>
+              <p class="price">no 35€</p>
             </div>
           </div>
           <ul class="ul">
-            <li>Putekļu tīrīšana</li>
-            <li>Termopastas maiņa (ja nepieciešams)</li>
+            <li>Putekļu un mitruma pēdu tīrīšana</li>
+            <li>Termopastas maiņa, ja nepieciešams</li>
             <li>Temperatūru tests pēc darba</li>
           </ul>
-          <div class="price-actions">
-            <a class="btn dark" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
-            <a class="btn" href="#reviews">Atsauksmes</a>
-          </div>
         </div>
+
+        <div class="price-card">
+          <div class="price-top">
+            <div>
+              <p class="price-title">Ligzdu / barošanas remonts</p>
+              <p class="price">Pēc diagnostikas</p>
+            </div>
+          </div>
+          <ul class="ul">
+            <li>USB-C, Lightning vai barošanas ķēdes pārbaude</li>
+            <li>Cena atkarīga no bojājuma dziļuma</li>
+            <li>Remontu sākam tikai pēc saskaņošanas</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pricing-cta">
+        <a class="btn dark" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
       </div>
     </div>
   </section>
@@ -434,7 +456,6 @@
         <div class="review" v-for="review in (publicReviews.length ? publicReviews : fallbackReviews)" :key="review.id">
           <div class="stars">{{ starText(review.rating) }}</div>
           <p>{{ review.comment }}</p>
-          <div class="verified">Pārbaudīta atsauksme pēc servisa pasūtījuma</div>
           <div class="who">
             <span>{{ review.client_name }}</span>
             <span class="badge-round">{{ reviewInitial(review.client_name) }}</span>
@@ -1292,6 +1313,15 @@ onBeforeUnmount(() => {
       background: rgba(47,124,255,.10);
       border: 1px solid rgba(47,124,255,.14);
       margin-bottom:14px;
+      color:#2f7cff;
+    }
+    .iconbox svg{
+      width:26px;
+      height:26px;
+      stroke:currentColor;
+      stroke-width:1.9;
+      stroke-linecap:round;
+      stroke-linejoin:round;
     }
     .card h3{ margin: 0 0 8px; font-size: 18px; letter-spacing: -.01em; }
     .card p{ margin:0; color: var(--gray); line-height:1.65; font-size: 14px; }
@@ -1423,7 +1453,7 @@ onBeforeUnmount(() => {
     }
     .pricing-grid{
       display:grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 22px;
       margin-top: 22px;
     }
@@ -1436,7 +1466,7 @@ onBeforeUnmount(() => {
       display:flex;
       flex-direction:column;
       gap: 14px;
-      min-height: 310px;
+      min-height: 260px;
     }
     .price-card.featured{
       border-color: rgba(10,102,255,.22);
@@ -1455,10 +1485,12 @@ onBeforeUnmount(() => {
       margin:0;
     }
     .price{
-      font-size: 36px;
+      font-size: 27px;
       font-weight:900;
       letter-spacing:-.02em;
       margin: 0;
+      line-height:1.15;
+      color:#0a66ff;
     }
     .price small{
       font-size: 14px;
@@ -1479,7 +1511,15 @@ onBeforeUnmount(() => {
       gap: 10px;
       flex-wrap:wrap;
     }
+    .pricing-cta{
+      margin-top: 26px;
+      display:flex;
+      justify-content:center;
+    }
 
+    @media (max-width: 1180px){
+      .pricing-grid{ grid-template-columns: repeat(2, 1fr); }
+    }
     @media (max-width: 980px){
       .pricing-grid{ grid-template-columns: 1fr; }
     }
@@ -1508,11 +1548,6 @@ onBeforeUnmount(() => {
     }
     .stars{ color:#0a66ff; font-weight:900; letter-spacing:.06em; }
     .review p{ margin:0; color: rgba(28,36,48,.62); line-height:1.75; font-size: 14px; }
-    .verified{
-      color: rgba(10,102,255,.72);
-      font-size: 12px;
-      font-weight: 800;
-    }
     .who{
       margin-top:auto;
       display:flex;
