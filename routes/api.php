@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DeviceCatalogController;
 use App\Http\Controllers\Api\MyDeviceController;
 use App\Http\Controllers\Api\NotificationController;
@@ -56,6 +57,7 @@ Route::get('/device-brands', [DeviceCatalogController::class, 'brands']);
 Route::get('/device-models', [DeviceCatalogController::class, 'models']);
 Route::get('/device-model-suggestions', [DeviceCatalogController::class, 'suggestions']);
 Route::get('/reviews/public', [ReviewController::class, 'publicIndex']);
+Route::post('/contact', [ContactController::class, 'store']);
 
 Route::patch('/me/password', [AuthController::class, 'updatePassword'])
     ->middleware(array_merge($sessionMiddleware, ['auth']));

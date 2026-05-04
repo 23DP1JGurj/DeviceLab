@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OrderCreatedMail;
+use App\Mail\OrderReadyMail;
 use App\Models\Device;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -13,9 +15,12 @@ use App\Models\Service;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class OrderController extends Controller
 {
@@ -137,7 +142,7 @@ class OrderController extends Controller
 
         $this->ensureDeviceCanBeUsed($user, (int) $data['device_id']);
 
-        return DB::transaction(function () use ($data, $user) {
+        $createdOrder = DB::transaction(function () use ($data, $user) {
             $items = $this->buildClientRequestItems($data);
             $problemDescription = $this->resolveProblemDescription($data);
 
@@ -192,6 +197,10 @@ class OrderController extends Controller
 
             return $this->loadOrderRelations($order);
         });
+
+        $this->sendOrderCreatedEmail($createdOrder);
+
+        return $createdOrder;
     }
 
     public function show(Request $request, Order $order)
@@ -326,6 +335,10 @@ class OrderController extends Controller
             );
 
             $this->notifyClientAboutStatusChange($order->fresh(), $newStatus, $request->input('status_comment'));
+
+            if ($oldStatus !== 'ready' && $newStatus === 'ready') {
+                $this->sendOrderReadyEmail($order->fresh());
+            }
         }
 
         return $this->loadOrderRelations($order);
@@ -699,6 +712,44 @@ class OrderController extends Controller
             'changed_by' => $changedBy,
             'comment' => $comment,
         ]);
+    }
+
+    private function sendOrderCreatedEmail(Order $order): void
+    {
+        $order->loadMissing(['user', 'branch', 'device']);
+
+        if (! $order->user?->email) {
+            return;
+        }
+
+        try {
+            Mail::to($order->user->email)->send(new OrderCreatedMail($order));
+        } catch (Throwable $exception) {
+            Log::warning('Order created email failed.', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function sendOrderReadyEmail(Order $order): void
+    {
+        $order->loadMissing(['user', 'branch', 'device']);
+
+        if (! $order->user?->email) {
+            return;
+        }
+
+        try {
+            Mail::to($order->user->email)->send(new OrderReadyMail($order));
+        } catch (Throwable $exception) {
+            Log::warning('Order ready email failed.', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 
     private function notifyClientAboutStatusChange(Order $order, string $status, ?string $comment = null): void

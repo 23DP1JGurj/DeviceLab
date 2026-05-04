@@ -560,11 +560,15 @@
           <b style="font-size:16px; letter-spacing:-.01em;">Uzraksti mums</b>
           <div style="margin-top:12px; display:grid; gap:10px;">
             <input class="input" id="cname" type="text" placeholder="Jūsu vārds" />
-            <input class="input" id="ccontact" type="text" placeholder="Tālrunis vai e-pasts" />
+            <input class="input" id="cemail" type="email" placeholder="E-pasts" />
+            <input class="input" id="cphone" type="tel" placeholder="Tālrunis" />
             <textarea class="textarea" id="cmsg" placeholder="Ziņa"></textarea>
             <button class="btn dark" id="sendMsg" type="button">Nosūtīt</button>
             <div class="ok" id="msgOk" style="display:none; font-size:12px; font-weight:800; color:#157a2b; background:rgba(21,122,43,.08); border:1px solid rgba(21,122,43,.18); padding:10px 12px; border-radius:12px;">
               Ziņa nosūtīta. Mēs ar jums sazināsimies.
+            </div>
+            <div class="contact-error" id="msgError" style="display:none;">
+              Neizdevās nosūtīt ziņu. Pārbaudiet laukus un mēģiniet vēlreiz.
             </div>
           </div>
         </div>
@@ -732,13 +736,63 @@ onMounted(() => {
     cleanups.push(() => a.removeEventListener('click', handler))
   })
 
-  // Contact form demo message
+  // Contact form
   const sendMsg = el.querySelector('#sendMsg')
   const msgOk = el.querySelector('#msgOk')
-  const onSend = () => {
-    if (!msgOk) return
-    msgOk.style.display = 'block'
-    window.setTimeout(() => (msgOk.style.display = 'none'), 2600)
+  const msgError = el.querySelector('#msgError')
+  const contactName = el.querySelector('#cname')
+  const contactEmail = el.querySelector('#cemail')
+  const contactPhone = el.querySelector('#cphone')
+  const contactMessage = el.querySelector('#cmsg')
+  const onSend = async () => {
+    if (!sendMsg) return
+
+    if (msgOk) msgOk.style.display = 'none'
+    if (msgError) msgError.style.display = 'none'
+
+    sendMsg.disabled = true
+    const originalText = sendMsg.textContent
+    sendMsg.textContent = 'Nosūta...'
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: contactName?.value || '',
+          email: contactEmail?.value || '',
+          phone: contactPhone?.value || '',
+          message: contactMessage?.value || '',
+        }),
+      })
+
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        const firstError = payload?.errors
+          ? Object.values(payload.errors).flat()[0]
+          : payload?.message
+
+        throw new Error(firstError || 'Neizdevās nosūtīt ziņu.')
+      }
+
+      if (contactName) contactName.value = ''
+      if (contactEmail) contactEmail.value = ''
+      if (contactPhone) contactPhone.value = ''
+      if (contactMessage) contactMessage.value = ''
+      if (msgOk) msgOk.style.display = 'block'
+    } catch (error) {
+      if (msgError) {
+        msgError.textContent = error?.message || 'Neizdevās nosūtīt ziņu. Pārbaudiet laukus un mēģiniet vēlreiz.'
+        msgError.style.display = 'block'
+      }
+    } finally {
+      sendMsg.disabled = false
+      sendMsg.textContent = originalText || 'Nosūtīt'
+    }
   }
   sendMsg?.addEventListener('click', onSend)
   if (sendMsg) cleanups.push(() => sendMsg.removeEventListener('click', onSend))
@@ -1106,6 +1160,20 @@ onBeforeUnmount(() => {
       font-size: 13px;
     }
     .textarea{ min-height: 88px; resize: vertical; }
+    .contact-error{
+      font-size:12px;
+      font-weight:800;
+      color:#b42318;
+      background:rgba(244,67,54,.08);
+      border:1px solid rgba(244,67,54,.18);
+      padding:10px 12px;
+      border-radius:12px;
+    }
+    .btn:disabled{
+      opacity:.68;
+      cursor:not-allowed;
+      transform:none;
+    }
 
     /* demo-only: looks filled, but not editable */
     .demo-only .input,
