@@ -3,6 +3,7 @@
     eyebrow="REĢISTRĀCIJA"
     title="Izveidot klienta kontu"
     subtitle="Pēc reģistrācijas varēsi pievienot ierīces un noformēt pieteikumu."
+    variant="register"
   >
     <form class="authForm" @submit.prevent="submit" novalidate>
       <div v-if="serverError" class="authAlert">{{ serverError }}</div>

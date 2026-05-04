@@ -7,7 +7,7 @@
     <form class="authForm" @submit.prevent="submit" novalidate>
       <div v-if="serverError" class="authAlert">{{ serverError }}</div>
 
-      <div class="authGrid">
+      <div class="authStack">
         <label class="authField wide">
           <span class="authLabel">E-pasts</span>
           <input
