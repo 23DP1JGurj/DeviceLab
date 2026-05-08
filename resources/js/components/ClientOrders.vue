@@ -465,8 +465,13 @@ const OFFICE_TO_BRANCH_ID = {
   center: 1,
   'riga-purvciems': 2,
   purvciems: 2,
-  'riga-imanta': 2,
-  imanta: 2,
+  'riga-imanta': 3,
+  imanta: 3,
+  'riga-teika': 4,
+  teika: 4,
+  'riga-pardaugava': 5,
+  pardaugava: 5,
+  pārdaugava: 5,
 }
 
 const selectedRequestType = computed(() => (

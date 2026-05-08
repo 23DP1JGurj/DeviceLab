@@ -161,8 +161,11 @@
                   <div class="field">
                     <label for="doffice">Filiāle (lokācija)</label>
                     <select class="select" id="doffice" v-model="draft.office">
-                      <option value="riga-centrs">Rīga — Centrs</option>
-                      <option value="riga-purvciems">Rīga — Purvciems</option>
+                      <option value="riga-centrs">DeviceLab Centrs</option>
+                      <option value="riga-purvciems">DeviceLab Purvciems</option>
+                      <option value="riga-imanta">DeviceLab Imanta</option>
+                      <option value="riga-teika">DeviceLab Teika</option>
+                      <option value="riga-pardaugava">DeviceLab Pārdaugava</option>
                     </select>
                   </div>
                 </div>
@@ -562,16 +565,34 @@
           <b style="font-size:16px; letter-spacing:-.01em;">Filiāles</b>
           <div class="branches">
             <div class="branch">
-              <b>DeviceLab — Centrs</b>
-              <span>Adrese: Rīga, Centrs</span>
+              <b>DeviceLab Centrs</b>
+              <span>Adrese: Brīvības iela 45, Rīga</span>
               <span>Darba laiks: P–Pk 09:00–18:00</span>
               <span>Tālrunis: +371 2000 1234</span>
             </div>
             <div class="branch">
-              <b>DeviceLab — Purvciems</b>
-              <span>Adrese: Rīga, Purvciems</span>
+              <b>DeviceLab Purvciems</b>
+              <span>Adrese: Dzelzavas iela 72, Rīga</span>
               <span>Darba laiks: P–S 10:00–19:00</span>
               <span>Tālrunis: +371 2000 5678</span>
+            </div>
+            <div class="branch">
+              <b>DeviceLab Imanta</b>
+              <span>Adrese: Kurzemes prospekts 88, Rīga</span>
+              <span>Darba laiks: P–Pk 09:00–18:00</span>
+              <span>Tālrunis: +371 2000 2345</span>
+            </div>
+            <div class="branch">
+              <b>DeviceLab Teika</b>
+              <span>Adrese: Brīvības gatve 214, Rīga</span>
+              <span>Darba laiks: P–Pk 09:00–18:00</span>
+              <span>Tālrunis: +371 2000 3456</span>
+            </div>
+            <div class="branch">
+              <b>DeviceLab Pārdaugava</b>
+              <span>Adrese: Kalnciema iela 40, Rīga</span>
+              <span>Darba laiks: P–Pk 09:00–18:00</span>
+              <span>Tālrunis: +371 2000 4567</span>
             </div>
           </div>
           <!-- Svarīgi: šī ir demo lapa. Reālajā vietnē var pieslēgt čatu un pieraksta sistēmu. -->
