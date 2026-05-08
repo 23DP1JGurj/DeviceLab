@@ -154,6 +154,15 @@ defineProps({
   color: #b91c1c;
   font-size: 13px;
   line-height: 1.45;
+  min-height: 19px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global(.compactAuthAlert) {
+  padding: 10px 12px;
+  font-size: 13px;
 }
 
 :global(.floatingField) {

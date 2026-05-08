@@ -306,11 +306,6 @@
           </label>
         </div>
 
-        <label class="field mt12">
-          <div class="label">Sērijas numurs</div>
-          <input class="control" v-model.trim="deviceForm.serial_number" type="text" placeholder="Nav obligāts" />
-        </label>
-
         <div v-if="deviceErrors.length > 0" class="msg mt12">
           <div v-for="(error, index) in deviceErrors" :key="index">{{ error }}</div>
         </div>
@@ -440,7 +435,6 @@ const deviceForm = reactive({
   type: 'phone',
   brand: '',
   model: '',
-  serial_number: '',
 })
 
 const requestTypes = [
@@ -823,7 +817,6 @@ function resetDeviceForm() {
   deviceForm.type = 'phone'
   deviceForm.brand = ''
   deviceForm.model = ''
-  deviceForm.serial_number = ''
   deviceErrors.value = []
   modelSuggestions.value = []
 }
@@ -1134,7 +1127,6 @@ async function saveDevice() {
         brand: deviceForm.brand,
         model: deviceForm.model,
         specs: null,
-        serial_number: deviceForm.serial_number || null,
       },
     })
 

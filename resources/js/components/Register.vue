@@ -20,9 +20,7 @@
             required
           />
           <span class="floatingLabel">Vārds</span>
-          <span v-if="fieldErrors.first_name?.[0] || fieldErrors.name?.[0]" class="authFieldError">
-            {{ fieldErrors.first_name?.[0] || fieldErrors.name?.[0] }}
-          </span>
+          <span class="authFieldError">{{ fieldError('first_name') || fieldError('name') }}</span>
         </label>
 
         <label class="floatingField">
@@ -36,7 +34,7 @@
             required
           />
           <span class="floatingLabel">Uzvārds</span>
-          <span v-if="fieldErrors.last_name?.[0]" class="authFieldError">{{ fieldErrors.last_name[0] }}</span>
+          <span class="authFieldError">{{ fieldError('last_name') }}</span>
         </label>
 
         <label class="floatingField">
@@ -50,7 +48,7 @@
             required
           />
           <span class="floatingLabel">E-pasts</span>
-          <span v-if="fieldErrors.email?.[0]" class="authFieldError">{{ fieldErrors.email[0] }}</span>
+          <span class="authFieldError">{{ fieldError('email') }}</span>
         </label>
 
         <label class="floatingField">
@@ -64,7 +62,7 @@
             required
           />
           <span class="floatingLabel">Tālrunis</span>
-          <span v-if="fieldErrors.phone?.[0]" class="authFieldError">{{ fieldErrors.phone[0] }}</span>
+          <span class="authFieldError">{{ fieldError('phone') }}</span>
         </label>
 
         <label class="floatingField">
@@ -78,9 +76,7 @@
             required
           />
           <span class="floatingLabel">Parole</span>
-          <span v-if="fieldErrors.password?.length" class="authFieldError">
-            <span v-for="error in fieldErrors.password" :key="error">{{ error }}</span>
-          </span>
+          <span class="authFieldError">{{ passwordFieldError }}</span>
         </label>
 
         <label class="floatingField">
@@ -94,10 +90,12 @@
             required
           />
           <span class="floatingLabel">Atkārto paroli</span>
-          <span v-if="fieldErrors.password_confirmation?.[0]" class="authFieldError">
-            {{ fieldErrors.password_confirmation[0] }}
-          </span>
+          <span class="authFieldError">{{ fieldError('password_confirmation') }}</span>
         </label>
+      </div>
+
+      <div v-if="passwordErrorSummary" class="authAlert compactAuthAlert">
+        {{ passwordErrorSummary }}
       </div>
 
       <button class="authSubmit" type="submit" :disabled="loading">
@@ -135,10 +133,19 @@ const fullName = computed(() => [form.first_name, form.last_name].filter(Boolean
 const loading = ref(false)
 const serverError = ref('')
 const fieldErrors = ref({})
+const passwordFieldError = computed(() => fieldErrors.value.password?.length ? 'Parole neatbilst prasībām.' : '')
+const passwordErrorSummary = computed(() => {
+  if (!fieldErrors.value.password?.length) return ''
+  return 'Parole neatbilst prasībām. Tai jābūt vismaz 8 simbolus garai, ar lielo burtu, ciparu un speciālo simbolu.'
+})
 
 function resetErrors() {
   serverError.value = ''
   fieldErrors.value = {}
+}
+
+function fieldError(field) {
+  return fieldErrors.value[field]?.[0] || ''
 }
 
 async function submit() {
