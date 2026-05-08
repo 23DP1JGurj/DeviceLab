@@ -18,7 +18,25 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'min:6', 'max:30'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! preg_match('/[A-Z]/', (string) $value)) {
+                        $fail('Parolei jāsatur vismaz viens lielais burts A-Z.');
+                    }
+
+                    if (! preg_match('/[0-9]/', (string) $value)) {
+                        $fail('Parolei jāsatur vismaz viens cipars.');
+                    }
+
+                    if (! preg_match('/[!@#$%^&*_\-+=?]/', (string) $value)) {
+                        $fail('Parolei jāsatur vismaz viens speciālais simbols, piemēram, ! @ # $ % ^ & * _ - + = ?.');
+                    }
+                },
+            ],
         ]);
 
         $user = User::create([

@@ -78,7 +78,9 @@
             required
           />
           <span class="floatingLabel">Parole</span>
-          <span v-if="fieldErrors.password?.[0]" class="authFieldError">{{ fieldErrors.password[0] }}</span>
+          <span v-if="fieldErrors.password?.length" class="authFieldError">
+            <span v-for="error in fieldErrors.password" :key="error">{{ error }}</span>
+          </span>
         </label>
 
         <label class="floatingField">

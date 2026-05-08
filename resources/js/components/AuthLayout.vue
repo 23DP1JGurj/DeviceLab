@@ -227,6 +227,10 @@ defineProps({
   margin-top: 7px;
 }
 
+:global(.floatingField .authFieldError span) {
+  display: block;
+}
+
 :global(.authSubmit) {
   display: inline-flex;
   align-items: center;
