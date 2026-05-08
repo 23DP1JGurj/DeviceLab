@@ -14,30 +14,7 @@ class DemoSeeder extends Seeder
         $staffId = DB::table('users')->where('email', 'staff@devicelab.local')->value('id');
         $clientId = DB::table('users')->where('email', 'client@devicelab.local')->value('id');
 
-        DB::table('branches')->insertOrIgnore([
-            [
-                'id' => 1,
-                'name' => 'DeviceLab Riga Center',
-                'address' => 'Riga, Centrs',
-                'phone' => '+371 00000000',
-                'email' => 'riga@devicelab.local',
-                'working_hours' => 'Mo-Fr 9:00-18:00',
-                'is_active' => 1,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'id' => 2,
-                'name' => 'DeviceLab Riga Imanta',
-                'address' => 'Riga, Imanta',
-                'phone' => '+371 11111111',
-                'email' => 'imanta@devicelab.local',
-                'working_hours' => 'Mo-Sa 10:00-19:00',
-                'is_active' => 1,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-        ]);
+        $this->call(BranchSeeder::class);
 
         DB::table('services')->upsert([
             ['id' => 1, 'name' => 'Diagnostika', 'description' => 'Ierīces pamatdiagnostika un defekta noteikšana', 'base_price' => 15.00, 'estimated_minutes' => 30, 'is_active' => 1, 'created_at' => $now, 'updated_at' => $now],
