@@ -189,15 +189,6 @@
               <textarea class="control textarea" v-model="edit[order.id].work_log" rows="3" />
             </label>
 
-            <label class="field statusCommentField">
-              <div class="label">Statusa komentārs</div>
-              <textarea
-                class="control textarea"
-                v-model="edit[order.id].status_comment"
-                rows="3"
-                placeholder="Piemēram: Diagnostika pabeigta, nepieciešama detaļa..."
-              />
-            </label>
           </div>
 
           <div class="actions">
@@ -269,7 +260,6 @@ function ensureEdit(order) {
       status: order.status || 'confirmed',
       diagnosis: order.diagnosis || '',
       work_log: order.work_log || '',
-      status_comment: '',
     }
     return
   }
@@ -277,7 +267,6 @@ function ensureEdit(order) {
   edit[order.id].status = order.status || edit[order.id].status
   edit[order.id].diagnosis = order.diagnosis || ''
   edit[order.id].work_log = order.work_log || ''
-  edit[order.id].status_comment = edit[order.id].status_comment || ''
 }
 
 function ensureItemForm(order) {
@@ -510,7 +499,6 @@ async function saveOrder(id) {
         status: edit[id].status,
         diagnosis: edit[id].diagnosis,
         work_log: edit[id].work_log,
-        status_comment: edit[id].status_comment,
       },
     })
 
@@ -524,7 +512,6 @@ async function saveOrder(id) {
     }
 
     saveOkId.value = id
-    edit[id].status_comment = ''
     await loadOrders()
     setTimeout(() => {
       if (saveOkId.value === id) saveOkId.value = null
@@ -660,7 +647,6 @@ watch(filters, () => {
 .workPanel { margin-top: 18px; padding: 18px; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 18px; background: #f8fafc; }
 .workHead { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .editGrid { display: grid; grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-.statusCommentField { grid-column: 1 / -1; }
 .field { min-width: 0; }
 .label { margin-bottom: 6px; color: #475569; font-size: 12px; font-weight: 800; }
 .control { width: 100%; min-width: 0; padding: 11px 12px; border-radius: 14px; border: 1px solid rgba(15, 23, 42, 0.14); background: #fff; outline: none; font: inherit; }
