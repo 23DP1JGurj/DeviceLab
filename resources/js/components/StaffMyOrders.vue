@@ -22,8 +22,9 @@
       </select>
       <select class="control" v-model="filters.branch_id">
         <option value="">Visas filiāles</option>
-        <option value="1">Filiāle #1</option>
-        <option value="2">Filiāle #2</option>
+        <option v-for="branch in branches" :key="branch.id" :value="String(branch.id)">
+          {{ formatBranchShort(branch) }}
+        </option>
       </select>
       <select class="control" v-model="filters.payment_status">
         <option value="">Visa apmaksa</option>
@@ -222,11 +223,13 @@ import { RouterLink, useRouter } from 'vue-router'
 import DashboardTopbar from './DashboardTopbar.vue'
 import OrderStatusTimeline from './OrderStatusTimeline.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
+import { formatBranchShort, uniqueBranches } from '../branchFormat'
 import { formatDevice } from '../deviceFormat'
 import { ORDER_STATUSES, statusLabel } from '../orderStatus'
 
 const router = useRouter()
 const orders = ref([])
+const branches = ref([])
 const total = ref(0)
 const loading = ref(false)
 const listError = ref('')
@@ -351,9 +354,10 @@ function resetItemFeedback(orderId) {
 }
 
 async function loadCatalogs() {
-  const [servicesResponse, partsResponse] = await Promise.all([
+  const [servicesResponse, partsResponse, branchesResponse] = await Promise.all([
     authFetch('/api/services'),
     authFetch('/api/parts'),
+    authFetch('/api/branches'),
   ])
 
   if (!servicesResponse.ok) {
@@ -366,6 +370,7 @@ async function loadCatalogs() {
 
   services.value = await servicesResponse.json()
   parts.value = await partsResponse.json()
+  branches.value = branchesResponse.ok ? uniqueBranches(await branchesResponse.json()) : []
 }
 
 async function redirectToLogin() {

@@ -136,6 +136,23 @@
 }
 .adminActions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 14px 2px 0;
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -205,4 +222,6 @@
   .orderCard .rowTop { grid-template-columns: 1fr; }
   .rightValue { text-align: left; }
   .orderActionColumn { justify-items: stretch; text-align: left; width: 100%; }
+  .paginationBar { align-items: flex-start; flex-direction: column; }
+  .paginationControls { justify-content: flex-start; }
 }

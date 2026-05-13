@@ -4,7 +4,7 @@
 
     <div class="sectionHeader">
       <div class="sectionTitle">Pasūtījumi</div>
-      <div class="muted">Kopā: {{ total }}</div>
+      <div class="muted">Kopā: {{ pagination.total }}</div>
     </div>
 
     <div class="filterBar">
@@ -22,8 +22,9 @@
       </select>
       <select class="control" v-model="filters.branch_id">
         <option value="">Visas filiāles</option>
-        <option value="1">Filiāle #1</option>
-        <option value="2">Filiāle #2</option>
+        <option v-for="branch in branches" :key="branch.id" :value="String(branch.id)">
+          {{ formatBranchShort(branch) }}
+        </option>
       </select>
       <select class="control" v-model="filters.payment_status">
         <option value="">Visa apmaksa</option>
@@ -76,6 +77,29 @@
         </div>
       </article>
     </div>
+
+    <div v-if="pagination.last_page > 1" class="paginationBar">
+      <div class="muted">
+        Rādīti {{ pagination.from || 0 }}–{{ pagination.to || 0 }} no {{ pagination.total }} pasūtījumiem
+      </div>
+      <div class="paginationControls">
+        <button class="btn btnSoft" type="button" :disabled="pagination.current_page <= 1" @click="goToPage(pagination.current_page - 1)">
+          Iepriekšējā
+        </button>
+        <button
+          v-for="pageNumber in visiblePages"
+          :key="pageNumber"
+          type="button"
+          :class="['btn', pageNumber === pagination.current_page ? 'btnPrimary' : 'btnSoft']"
+          @click="goToPage(pageNumber)"
+        >
+          {{ pageNumber }}
+        </button>
+        <button class="btn btnSoft" type="button" :disabled="pagination.current_page >= pagination.last_page" @click="goToPage(pagination.current_page + 1)">
+          Nākamā
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -83,15 +107,25 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { authFetch, extractErrorMessage } from '../auth'
+import { formatBranchShort, uniqueBranches } from '../branchFormat'
 import { formatDevice } from '../deviceFormat'
 import { statusLabel } from '../orderStatus'
 import DashboardTopbar from './DashboardTopbar.vue'
 
 const router = useRouter()
 const orders = ref([])
-const total = ref(0)
+const branches = ref([])
 const loading = ref(false)
 const error = ref('')
+const currentPage = ref(1)
+const pagination = reactive({
+  current_page: 1,
+  last_page: 1,
+  total: 0,
+  per_page: 20,
+  from: 0,
+  to: 0,
+})
 const filters = reactive({
   search: '',
   status: '',
@@ -105,6 +139,20 @@ const hasActiveFilters = computed(() => Boolean(
   filters.search || filters.status || filters.branch_id || filters.payment_status || filters.has_review || filters.sort !== 'newest',
 ))
 
+const visiblePages = computed(() => {
+  const last = Number(pagination.last_page || 1)
+  const current = Number(pagination.current_page || 1)
+  const start = Math.max(1, current - 2)
+  const end = Math.min(last, current + 2)
+  const pages = []
+
+  for (let page = start; page <= end; page += 1) {
+    pages.push(page)
+  }
+
+  return pages
+})
+
 function formatMoney(value) {
   return `${Number(value || 0).toFixed(2)} €`
 }
@@ -112,6 +160,12 @@ function formatMoney(value) {
 function starText(rating) {
   const value = Math.max(0, Math.min(5, Number(rating || 0)))
   return '★'.repeat(value)
+}
+
+async function loadBranches() {
+  const response = await authFetch('/api/branches')
+  if (!response.ok) return
+  branches.value = uniqueBranches(await response.json())
 }
 
 async function loadOrders() {
@@ -122,9 +176,9 @@ async function loadOrders() {
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== '') params.set(key, value)
     })
+    params.set('page', String(currentPage.value))
 
-    const query = params.toString()
-    const response = await authFetch(`/api/admin/orders${query ? `?${query}` : ''}`)
+    const response = await authFetch(`/api/admin/orders?${params.toString()}`)
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
         await router.push({ path: '/login', query: { redirect: '/admin/orders' } })
@@ -132,9 +186,15 @@ async function loadOrders() {
       }
       throw new Error(await extractErrorMessage(response, 'Neizdevās ielādēt pasūtījumus.'))
     }
+
     const json = await response.json()
     orders.value = json.data ?? []
-    total.value = json.total ?? orders.value.length
+    pagination.current_page = Number(json.current_page || currentPage.value)
+    pagination.last_page = Number(json.last_page || 1)
+    pagination.total = Number(json.total || orders.value.length)
+    pagination.per_page = Number(json.per_page || 20)
+    pagination.from = Number(json.from || 0)
+    pagination.to = Number(json.to || 0)
   } catch (e) {
     error.value = (e?.message || 'Neizdevās ielādēt pasūtījumus.').slice(0, 260)
   } finally {
@@ -142,7 +202,12 @@ async function loadOrders() {
   }
 }
 
-onMounted(loadOrders)
+function goToPage(page) {
+  const nextPage = Math.min(Math.max(1, Number(page || 1)), pagination.last_page || 1)
+  if (nextPage === currentPage.value) return
+  currentPage.value = nextPage
+  loadOrders()
+}
 
 function resetFilters() {
   filters.search = ''
@@ -153,10 +218,16 @@ function resetFilters() {
   filters.sort = 'newest'
 }
 
+onMounted(async () => {
+  await loadBranches().catch(() => null)
+  await loadOrders()
+})
+
 let filterTimer = null
 watch(filters, () => {
   clearTimeout(filterTimer)
   filterTimer = setTimeout(() => {
+    currentPage.value = 1
     loadOrders()
   }, 300)
 }, { deep: true })

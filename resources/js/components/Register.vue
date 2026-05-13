@@ -113,11 +113,10 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { register, resolveRedirectPath, sanitizeRedirectPath } from '../auth'
+import { RouterLink, useRouter } from 'vue-router'
+import { defaultRouteForUser, register } from '../auth'
 import AuthLayout from './AuthLayout.vue'
 
-const route = useRoute()
 const router = useRouter()
 
 const form = reactive({
@@ -161,7 +160,7 @@ async function submit() {
       password_confirmation: form.password_confirmation,
     })
 
-    await router.push(resolveRedirectPath(user, sanitizeRedirectPath(route.query.redirect)))
+    await router.push(defaultRouteForUser(user))
   } catch (err) {
     fieldErrors.value = err?.fieldErrors || {}
     serverError.value = err?.status && err.status !== 422

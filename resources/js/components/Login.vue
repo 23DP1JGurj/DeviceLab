@@ -63,11 +63,10 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { login, resolveRedirectPath, sanitizeRedirectPath } from '../auth'
+import { RouterLink, useRouter } from 'vue-router'
+import { defaultRouteForUser, login } from '../auth'
 import AuthLayout from './AuthLayout.vue'
 
-const route = useRoute()
 const router = useRouter()
 const isDev = import.meta.env.DEV
 
@@ -92,7 +91,7 @@ async function submit() {
 
   try {
     const user = await login(form.email, form.password)
-    await router.push(resolveRedirectPath(user, sanitizeRedirectPath(route.query.redirect)))
+    await router.push(defaultRouteForUser(user))
   } catch (err) {
     fieldErrors.value = err?.fieldErrors || {}
     serverError.value = err?.status && err.status !== 422

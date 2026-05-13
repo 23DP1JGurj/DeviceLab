@@ -17,8 +17,9 @@
       <input class="control" v-model.trim="filters.search" type="search" placeholder="Meklēt pēc numura, klienta vai ierīces" />
       <select class="control" v-model="filters.branch_id">
         <option value="">Visas filiāles</option>
-        <option value="1">Filiāle #1</option>
-        <option value="2">Filiāle #2</option>
+        <option v-for="branch in branches" :key="branch.id" :value="String(branch.id)">
+          {{ formatBranchShort(branch) }}
+        </option>
       </select>
       <select class="control" v-model="filters.request_type">
         <option value="">Visi veidi</option>
@@ -85,11 +86,13 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import DashboardTopbar from './DashboardTopbar.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
+import { formatBranchShort, uniqueBranches } from '../branchFormat'
 import { formatDevice } from '../deviceFormat'
 import { statusLabel } from '../orderStatus'
 
 const router = useRouter()
 const orders = ref([])
+const branches = ref([])
 const total = ref(0)
 const loading = ref(false)
 const listError = ref('')
@@ -124,6 +127,12 @@ function itemName(item) {
 
 async function redirectToLogin() {
   await router.push({ path: '/login', query: { redirect: '/staff/orders/new' } })
+}
+
+async function loadBranches() {
+  const response = await authFetch('/api/branches')
+  if (!response.ok) return
+  branches.value = uniqueBranches(await response.json())
 }
 
 async function loadOrders() {
@@ -208,6 +217,7 @@ onMounted(async () => {
     return
   }
 
+  await loadBranches().catch(() => null)
   await loadOrders()
 })
 

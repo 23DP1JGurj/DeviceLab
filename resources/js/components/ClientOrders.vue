@@ -39,7 +39,7 @@
               <select class="control" v-model.number="form.branch_id" :disabled="metaLoading || branches.length === 0">
                 <option value="" disabled hidden>Izvēlies filiāli</option>
                 <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-                  {{ branch.name }}{{ branch.address ? ` — ${branch.address}` : '' }}
+                  {{ formatBranchShort(branch) }}{{ branch.address ? ` — ${branch.address}` : '' }}
                 </option>
               </select>
             </label>
@@ -329,6 +329,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import AutocompleteInput from './AutocompleteInput.vue'
 import DashboardTopbar from './DashboardTopbar.vue'
 import { authFetch, currentUser, extractErrorMessage, hasAnyRole, initAuth } from '../auth'
+import { formatBranchShort, uniqueBranches } from '../branchFormat'
 import { fetchDeviceBrands, fetchDeviceModelsByType } from '../deviceCatalog'
 import { formatDevice } from '../deviceFormat'
 import { statusLabel } from '../orderStatus'
@@ -872,7 +873,7 @@ async function loadMeta() {
       throw new Error(await extractErrorMessage(partsResponse, 'Neizdevās ielādēt detaļas.'))
     }
 
-    branches.value = (await branchesResponse.json()) ?? []
+    branches.value = uniqueBranches((await branchesResponse.json()) ?? [])
     services.value = (await servicesResponse.json()) ?? []
     parts.value = (await partsResponse.json()) ?? []
 
