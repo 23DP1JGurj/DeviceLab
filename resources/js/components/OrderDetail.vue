@@ -111,7 +111,9 @@
                   v-for="rating in 5"
                   :key="rating"
                   type="button"
-                  :class="['starButton', { active: review.rating >= rating }]"
+                  :class="['starButton', { active: visibleReviewRating >= rating }]"
+                  @mouseenter="reviewHoverRating = rating"
+                  @mouseleave="reviewHoverRating = 0"
                   @click="review.rating = rating"
                 >★</button>
               </div>
@@ -155,9 +157,11 @@ const paymentMessage = ref('')
 const cancelMessage = ref('')
 const reviewing = ref(false)
 const reviewMessage = ref('')
+const reviewHoverRating = ref(0)
 const review = reactive({ rating: 0, comment: '' })
 
 const canReview = computed(() => order.value?.status === 'done' && order.value?.payment?.status === 'paid')
+const visibleReviewRating = computed(() => reviewHoverRating.value || review.rating)
 const canCancel = computed(() => (
   order.value?.status === 'new'
   && !order.value?.assigned_staff_id
@@ -261,6 +265,7 @@ async function submitReview() {
     if (!response.ok) throw new Error(await extractErrorMessage(response, 'Neizdevās iesniegt atsauksmi.'))
     order.value.review = await response.json()
     review.rating = 0
+    reviewHoverRating.value = 0
     review.comment = ''
     reviewMessage.value = 'Paldies! Atsauksme iesniegta.'
   } catch (e) {
@@ -316,7 +321,7 @@ onMounted(loadOrder)
 .reviewBlock p { margin: 0; color: #334155; line-height: 1.55; }
 .ratingButtons { display: flex; gap: 4px; }
 .starButton { width: 38px; height: 38px; border: 1px solid #d8e0eb; border-radius: 12px; color: #94a3b8; background: #fff; cursor: pointer; font-size: 20px; }
-.starButton.active, .starButton:hover { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
+.starButton.active { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
 .control { width: 100%; padding: 10px 12px; border: 1px solid rgba(15,23,42,.14); border-radius: 12px; background: #fff; }
 .textarea { resize: vertical; line-height: 1.5; }
 .btn { border: 1px solid rgba(15,23,42,.14); background: #fff; color: #0f172a; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 800; text-decoration: none; }
