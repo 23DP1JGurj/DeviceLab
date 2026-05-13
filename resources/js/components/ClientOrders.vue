@@ -1156,7 +1156,7 @@ async function saveDevice() {
     const loaded = await loadDevices(created?.id)
 
     if (loaded) {
-      closeDeviceModal()
+      isDeviceModalOpen.value = false
       resetDeviceForm()
     }
   } catch (error) {

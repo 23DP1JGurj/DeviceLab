@@ -622,6 +622,7 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import { currentUser, defaultRouteForUser, initAuth, isLoggedIn } from '../auth'
+import { sanitizePhoneInput } from '../phoneInput'
 
 const logoUrl = '/images/devicelab-logo.png'
 
@@ -755,6 +756,11 @@ onMounted(() => {
   const contactEmail = el.querySelector('#cemail')
   const contactPhone = el.querySelector('#cphone')
   const contactMessage = el.querySelector('#cmsg')
+  const sanitizeContactPhone = () => {
+    if (contactPhone) {
+      contactPhone.value = sanitizePhoneInput(contactPhone.value)
+    }
+  }
   const onSend = async () => {
     if (!sendMsg) return
 
@@ -807,6 +813,8 @@ onMounted(() => {
   }
   sendMsg?.addEventListener('click', onSend)
   if (sendMsg) cleanups.push(() => sendMsg.removeEventListener('click', onSend))
+  contactPhone?.addEventListener('input', sanitizeContactPhone)
+  if (contactPhone) cleanups.push(() => contactPhone.removeEventListener('input', sanitizeContactPhone))
 
   // Footer year
   const yearEl = el.querySelector('#year')
