@@ -370,11 +370,11 @@
 
       <div class="pricing-grid">
         <div class="price-card">
-          <div class="price-top">
-            <div>
-              <p class="price-title">Diagnostika</p>
-              <p class="price">no 15€</p>
-            </div>
+          <div class="price-heading">
+            <p class="price-title">Diagnostika</p>
+          </div>
+          <div class="price-value">
+            <p class="price">no 15€</p>
           </div>
           <ul class="ul">
             <li>Bojājuma cēloņa noteikšana</li>
@@ -384,11 +384,11 @@
         </div>
 
         <div class="price-card featured">
-          <div class="price-top">
-            <div>
-              <p class="price-title">Ekrāna vai akumulatora maiņa</p>
-              <p class="price">Atkarīga no modeļa</p>
-            </div>
+          <div class="price-heading">
+            <p class="price-title">Ekrāna vai akumulatora maiņa</p>
+          </div>
+          <div class="price-value">
+            <p class="price">Atkarīga no modeļa</p>
           </div>
           <ul class="ul">
             <li>Detaļa tiek piemeklēta konkrētam modelim</li>
@@ -398,11 +398,11 @@
         </div>
 
         <div class="price-card">
-          <div class="price-top">
-            <div>
-              <p class="price-title">Tīrīšana / apkope</p>
-              <p class="price">no 35€</p>
-            </div>
+          <div class="price-heading">
+            <p class="price-title">Tīrīšana / apkope</p>
+          </div>
+          <div class="price-value">
+            <p class="price">no 35€</p>
           </div>
           <ul class="ul">
             <li>Putekļu un mitruma pēdu tīrīšana</li>
@@ -412,11 +412,11 @@
         </div>
 
         <div class="price-card">
-          <div class="price-top">
-            <div>
-              <p class="price-title">Ligzdu / barošanas remonts</p>
-              <p class="price">Pēc diagnostikas</p>
-            </div>
+          <div class="price-heading">
+            <p class="price-title">Ligzdu / barošanas remonts</p>
+          </div>
+          <div class="price-value">
+            <p class="price">Pēc diagnostikas</p>
           </div>
           <ul class="ul">
             <li>USB-C, Lightning vai barošanas ķēdes pārbaude</li>
@@ -1555,26 +1555,31 @@ onBeforeUnmount(() => {
       border: 1px solid rgba(28,36,48,.08);
       box-shadow: 0 18px 55px rgba(12,25,48,.08);
       padding: 24px;
-      display:flex;
-      flex-direction:column;
-      gap: 14px;
+      display:grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 12px;
       min-height: 260px;
     }
     .price-card.featured{
       border-color: rgba(10,102,255,.22);
       box-shadow: 0 22px 70px rgba(10,102,255,.12);
     }
-    .price-top{
+    .price-heading{
       display:flex;
       align-items:flex-start;
-      justify-content:space-between;
-      gap: 12px;
+      min-height: 52px;
+    }
+    .price-value{
+      display:flex;
+      align-items:flex-start;
+      min-height: 36px;
     }
     .price-title{
       font-weight:900;
       font-size: 18px;
       letter-spacing:-.01em;
       margin:0;
+      line-height:1.22;
     }
     .price{
       font-size: 27px;
@@ -1608,6 +1613,8 @@ onBeforeUnmount(() => {
     }
     @media (max-width: 980px){
       .pricing-grid{ grid-template-columns: 1fr; }
+      .price-heading,
+      .price-value{ min-height: 0; }
     }
 
     /* ===== Reviews ===== */
