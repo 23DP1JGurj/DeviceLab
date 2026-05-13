@@ -22,19 +22,36 @@
           <span v-if="fieldErrors.email?.[0]" class="authFieldError">{{ fieldErrors.email[0] }}</span>
         </label>
 
-        <label class="floatingField">
+        <div class="floatingField passwordField">
           <input
             class="floatingInput"
             :class="{ hasError: fieldErrors.password?.length || fieldErrors.email?.length }"
             v-model="form.password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             autocomplete="current-password"
             placeholder=" "
             required
           />
           <span class="floatingLabel">Parole</span>
+          <button
+            class="passwordToggle"
+            type="button"
+            :aria-label="showPassword ? 'Paslēpt paroli' : 'Rādīt paroli'"
+            @click="showPassword = !showPassword"
+          >
+            <svg v-if="!showPassword" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 3l18 18"/>
+              <path d="M10.6 5.2A10.7 10.7 0 0 1 12 5c6 0 9.5 7 9.5 7a17.8 17.8 0 0 1-3.1 4.1"/>
+              <path d="M6.4 6.8C3.9 8.5 2.5 12 2.5 12s3.5 7 9.5 7c1.6 0 3-.4 4.2-1"/>
+              <path d="M9.9 9.9A3 3 0 0 0 14.1 14"/>
+            </svg>
+          </button>
           <span v-if="fieldErrors.password?.[0]" class="authFieldError">{{ fieldErrors.password[0] }}</span>
-        </label>
+        </div>
       </div>
 
       <button class="authSubmit" type="submit" :disabled="loading">
@@ -79,6 +96,7 @@ const loading = ref(false)
 const showTestAccounts = ref(false)
 const serverError = ref('')
 const fieldErrors = ref({})
+const showPassword = ref(false)
 
 function resetErrors() {
   serverError.value = ''

@@ -119,63 +119,50 @@
         </div>
 
         <div class="mockwrap">
-          <div class="mock" role="img" aria-label="Pieteikuma noformēšanas piemērs">
-            <div class="mock-inner">
-              <div class="mock-topbar">
-                <div class="dots" aria-hidden="true">
-                  <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <div class="tech-visual" role="img" aria-label="DeviceLab laptop and phone illustration">
+            <div class="tech-glow glow-one" aria-hidden="true"></div>
+            <div class="tech-glow glow-two" aria-hidden="true"></div>
+
+            <div class="laptop-illustration">
+              <div class="laptop-screen">
+                <div class="screen-toolbar" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                  <span></span>
                 </div>
-                <div style="opacity:.7;font-weight:700;">devicelab.lv</div>
+                <div class="screen-content" aria-hidden="true">
+                  <div class="screen-card wide">
+                    <div class="screen-line strong"></div>
+                    <div class="screen-line"></div>
+                  </div>
+                  <div class="screen-grid">
+                    <div class="screen-card">
+                      <div class="screen-icon"></div>
+                      <div class="screen-line small"></div>
+                    </div>
+                    <div class="screen-card accent">
+                      <div class="screen-icon"></div>
+                      <div class="screen-line small"></div>
+                    </div>
+                  </div>
+                  <div class="screen-chart">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
               </div>
+              <div class="laptop-base" aria-hidden="true"></div>
+              <div class="laptop-shadow" aria-hidden="true"></div>
+            </div>
 
-              <div class="demo-card">
-                <div>
-                  <div class="demo-title">Pieteikumu noformēt — vienkārši</div>
-                  <div class="demo-sub">Aizpildi datus — un mēs ar tevi sazināsimies.</div>
-                </div>
-
-                <div class="grid2">
-                  <div class="field">
-                    <label for="dname">Vārds</label>
-                    <input class="input" id="dname" v-model="draft.name" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="dphone">Tālrunis</label>
-                    <input class="input" id="dphone" v-model="draft.phone" type="text" />
-                  </div>
-                </div>
-
-                <div class="grid2">
-                  <div class="field">
-                    <label for="dtype">Ierīces tips</label>
-                    <select class="select" id="dtype" v-model="draft.device_type">
-                      <option value="phone">Telefons</option>
-                      <option value="laptop">Portatīvais dators</option>
-                      <option value="tablet">Planšete</option>
-                      <option value="other">Cits</option>
-                    </select>
-                  </div>
-
-                  <div class="field">
-                    <label for="doffice">Filiāle (lokācija)</label>
-                    <select class="select" id="doffice" v-model="draft.office">
-                      <option value="riga-centrs">DeviceLab Centrs</option>
-                      <option value="riga-purvciems">DeviceLab Purvciems</option>
-                      <option value="riga-imanta">DeviceLab Imanta</option>
-                      <option value="riga-teika">DeviceLab Teika</option>
-                      <option value="riga-pardaugava">DeviceLab Pārdaugava</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="field">
-                  <label for="dissue">Problēmas apraksts</label>
-                  <textarea class="textarea" id="dissue" v-model="draft.problem_description"></textarea>
-                </div>
-
-                <div class="demo-actions">
-                  <button class="btn dark" type="button" id="goOrder" @click="goToOrders">Pāriet uz pieteikuma noformēšanu</button>
-                </div>
+            <div class="phone-illustration" aria-hidden="true">
+              <div class="phone-speaker"></div>
+              <div class="phone-screen">
+                <span></span>
+                <span></span>
+                <span></span>
               </div>
             </div>
           </div>
@@ -438,10 +425,6 @@
           </ul>
         </div>
       </div>
-
-      <div class="pricing-cta">
-        <a class="btn dark" href="/orders" @click.prevent="goToOrderPage">Noformēt pieteikumu</a>
-      </div>
     </div>
   </section>
 
@@ -640,19 +623,10 @@ import { useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import { currentUser, defaultRouteForUser, initAuth, isLoggedIn } from '../auth'
 
-const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
 const logoUrl = '/images/devicelab-logo.png'
 
 const root = ref(null)
 const router = useRouter()
-
-const draft = ref({
-  name: 'Aleksejs Ivanovs',
-  phone: '+371 2000 1234',
-  device_type: 'phone',
-  office: 'riga-centrs',
-  problem_description: 'Neieslēdzas pēc uzlādes. Dažreiz mirgo logo un atkal izslēdzas.',
-})
 
 const publicReviews = ref([])
 const fallbackReviews = [
@@ -677,22 +651,18 @@ const fallbackReviews = [
 ]
 const cleanups = []
 
-function saveDraft() {
-  localStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft.value))
-}
-
 function goToOrderPage() {
   if (isLoggedIn.value) {
+    if (currentUser.value?.role === 'client') {
+      router.push('/orders/new')
+      return
+    }
+
     router.push(defaultRouteForUser(currentUser.value))
     return
   }
 
   router.push({ path: '/login', query: { redirect: '/orders' } })
-}
-
-function goToOrders() {
-  saveDraft()
-  router.push('/orders')
 }
 
 function starText(rating) {
@@ -1104,7 +1074,7 @@ onBeforeUnmount(() => {
     }
     .pill svg{width:16px;height:16px;opacity:.95}
 
-    /* ===== Mockup / demo card ===== */
+    /* ===== Hero tech illustration ===== */
     .mockwrap{
       position:relative;
       display:flex;
@@ -1116,78 +1086,208 @@ onBeforeUnmount(() => {
       50%      { transform: translate3d(0, var(--amp, 12px), 0); }
     }
 
-    .mock{
-      width: min(540px, 100%);
-      border-radius: 34px;
-      background: rgba(255,255,255,.92);
-      box-shadow: var(--shadow);
+    .tech-visual{
+      width: min(500px, 100%);
+      min-height: 390px;
       position:relative;
-      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       animation: floatY 8.2s ease-in-out infinite;
       --amp: 10px;
     }
-    .mock::before{
+    .tech-glow{
       content:"";
       position:absolute;
-      inset:0;
-      background:
-        radial-gradient(540px 260px at 55% 35%, rgba(47,124,255,.20), transparent 60%),
-        linear-gradient(180deg, rgba(255,255,255,1), rgba(245,247,252,1));
+      border-radius:999px;
+      filter: blur(2px);
+      pointer-events:none;
     }
-    .mock-inner{
+    .glow-one{
+      width: 360px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(255,255,255,.58), rgba(47,124,255,.12) 58%, transparent 72%);
+      transform: translate(20px, -12px);
+    }
+    .glow-two{
+      width: 210px;
+      height: 210px;
+      background: radial-gradient(circle, rgba(127,189,255,.38), transparent 68%);
+      right: 18px;
+      bottom: 28px;
+    }
+    .laptop-illustration{
       position:relative;
-      margin: 18px;
-      border-radius: 24px;
-      background: #f2f4f8;
-      overflow:hidden;
-      border: 1px solid rgba(16,51,110,.08);
+      z-index:2;
+      width: min(430px, 92%);
+      transform: rotate(-2deg);
     }
-    .mock-topbar{
-      height:44px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding: 0 14px;
-      background: rgba(255,255,255,.78);
-      border-bottom: 1px solid rgba(16,51,110,.07);
-      color:#224;
-      font-size:12px;
-    }
-    .dots{display:flex; gap:7px}
-    .dot{width:10px;height:10px;border-radius:99px;background: rgba(16,51,110,.18);}
-
-    .demo-card{
+    .laptop-screen{
+      position:relative;
+      height: 265px;
+      border-radius: 28px;
       padding: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(239,245,255,.94));
+      border: 1px solid rgba(255,255,255,.72);
+      box-shadow: 0 30px 80px rgba(8,32,84,.24);
+      overflow:hidden;
+    }
+    .laptop-screen::before{
+      content:"";
+      position:absolute;
+      inset: 0;
+      background:
+        radial-gradient(300px 170px at 82% 8%, rgba(47,124,255,.22), transparent 68%),
+        linear-gradient(135deg, rgba(255,255,255,.3), transparent);
+      pointer-events:none;
+    }
+    .screen-toolbar{
+      position:relative;
+      display:flex;
+      gap:7px;
+      margin-bottom:16px;
+    }
+    .screen-toolbar span{
+      width: 10px;
+      height: 10px;
+      border-radius:999px;
+      background: rgba(16,51,110,.16);
+    }
+    .screen-content{
+      position:relative;
       display:grid;
-      gap: 12px;
+      gap:14px;
     }
-    .demo-title{
-      color:#1b2a44;
-      font-weight:800;
-      font-size: 18px;
-      line-height:1.2;
-      margin-bottom:2px;
-    }
-    .demo-sub{
-      color:#51607a;
-      font-size:12px;
-      line-height:1.6;
-      margin-bottom:6px;
-    }
-    .grid2{
+    .screen-grid{
       display:grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap:12px;
     }
-    .field{
+    .screen-card{
+      min-height: 72px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(16,51,110,.08);
+      box-shadow: 0 16px 38px rgba(26,72,148,.08);
+    }
+    .screen-card.wide{
+      min-height: 78px;
+      display:grid;
+      align-content:center;
+      gap:10px;
+    }
+    .screen-card.accent{
+      background: rgba(232,241,255,.78);
+    }
+    .screen-line{
+      height: 9px;
+      width: 74%;
+      border-radius:999px;
+      background: rgba(16,51,110,.12);
+    }
+    .screen-line.strong{
+      height: 13px;
+      width: 48%;
+      background: rgba(47,124,255,.22);
+    }
+    .screen-line.small{
+      width: 58%;
+      margin-top: 14px;
+    }
+    .screen-icon{
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(47,124,255,.28), rgba(125,190,255,.18));
+    }
+    .screen-chart{
       display:flex;
-      flex-direction:column;
-      gap: 6px;
+      align-items:flex-end;
+      gap:9px;
+      height:56px;
+      padding: 12px 14px;
+      border-radius:18px;
+      background: rgba(255,255,255,.58);
+      border: 1px solid rgba(16,51,110,.07);
     }
-    .field label{
-      font-size: 12px;
-      font-weight:800;
-      color: rgba(27,42,68,.75);
+    .screen-chart span{
+      width: 18%;
+      border-radius: 999px 999px 6px 6px;
+      background: linear-gradient(180deg, rgba(47,124,255,.58), rgba(47,124,255,.18));
+    }
+    .screen-chart span:nth-child(1){ height:28%; }
+    .screen-chart span:nth-child(2){ height:58%; }
+    .screen-chart span:nth-child(3){ height:42%; }
+    .screen-chart span:nth-child(4){ height:76%; }
+    .laptop-base{
+      width: 108%;
+      height: 34px;
+      margin: -2px 0 0 -4%;
+      border-radius: 8px 8px 28px 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(207,221,244,.98));
+      border: 1px solid rgba(255,255,255,.65);
+      box-shadow: 0 24px 48px rgba(8,32,84,.18);
+    }
+    .laptop-base::after{
+      content:"";
+      display:block;
+      width: 88px;
+      height: 7px;
+      margin: 8px auto 0;
+      border-radius: 999px;
+      background: rgba(16,51,110,.12);
+    }
+    .laptop-shadow{
+      width: 78%;
+      height: 26px;
+      margin: 18px auto 0;
+      border-radius: 999px;
+      background: rgba(4,18,45,.18);
+      filter: blur(18px);
+    }
+    .phone-illustration{
+      position:absolute;
+      z-index:3;
+      left: 28px;
+      bottom: 22px;
+      width: 96px;
+      height: 172px;
+      border-radius: 26px;
+      padding: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(235,243,255,.96));
+      border: 1px solid rgba(255,255,255,.72);
+      box-shadow: 0 22px 55px rgba(8,32,84,.22);
+      transform: rotate(6deg);
+    }
+    .phone-speaker{
+      width: 30px;
+      height: 5px;
+      border-radius:999px;
+      margin: 0 auto 12px;
+      background: rgba(16,51,110,.16);
+    }
+    .phone-screen{
+      height: 126px;
+      border-radius: 18px;
+      padding: 16px 12px;
+      background:
+        radial-gradient(70px 70px at 72% 15%, rgba(47,124,255,.18), transparent 65%),
+        linear-gradient(180deg, rgba(246,249,255,1), rgba(230,239,255,1));
+      display:grid;
+      gap: 9px;
+      align-content:start;
+    }
+    .phone-screen span{
+      display:block;
+      height: 8px;
+      border-radius:999px;
+      background: rgba(16,51,110,.12);
+    }
+    .phone-screen span:first-child{
+      width: 70%;
+      height: 18px;
+      background: rgba(47,124,255,.22);
     }
     .input, .select, .textarea{
       width:100%;
@@ -1216,35 +1316,6 @@ onBeforeUnmount(() => {
       transform:none;
     }
 
-    /* demo-only: looks filled, but not editable */
-    .demo-only .input,
-    .demo-only .select,
-    .demo-only .textarea{
-      background: rgba(255,255,255,.74);
-      color: rgba(27,42,68,.92);
-      border-color: rgba(16,51,110,.10);
-    }
-    .demo-only .input:disabled,
-    .demo-only .select:disabled,
-    .demo-only .textarea:disabled{
-      opacity: 1;
-      -webkit-text-fill-color: rgba(27,42,68,.92);
-    }
-
-    .demo-actions{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 12px;
-      flex-wrap:wrap;
-      margin-top: 6px;
-    }
-    .hint{
-      font-size: 12px;
-      color: rgba(27,42,68,.62);
-      line-height:1.4;
-    }
-
     /* ===== Floating decorations ===== */
     .float{
       position:absolute;
@@ -1260,7 +1331,7 @@ onBeforeUnmount(() => {
     .float.three{ right: -20px; bottom: -10px; width: 420px; opacity:.9; --dur: 8.8s; --amp: 16px;}
 
     @media (prefers-reduced-motion: reduce){
-      .float, .mock{ animation: none !important; }
+      .float, .tech-visual{ animation: none !important; }
     }
 
     /* wave divider */
@@ -1282,7 +1353,8 @@ onBeforeUnmount(() => {
       .float.one{ left:-30px; top: 40px; width: 190px; opacity:.6}
       .float.two{ right:-20px; top: 70px; width: 120px; opacity:.6}
       .float.three{ right:-90px; bottom:-60px; width: 360px; opacity:.65}
-      .grid2{ grid-template-columns: 1fr; }
+      .tech-visual{ width: min(470px, 100%); min-height: 350px; }
+      .phone-illustration{ left: 10px; bottom: 18px; transform: rotate(4deg) scale(.92); }
     }
 
     /* ===== Section base ===== */
@@ -1531,12 +1603,6 @@ onBeforeUnmount(() => {
       gap: 10px;
       flex-wrap:wrap;
     }
-    .pricing-cta{
-      margin-top: 26px;
-      display:flex;
-      justify-content:center;
-    }
-
     @media (max-width: 1180px){
       .pricing-grid{ grid-template-columns: repeat(2, 1fr); }
     }

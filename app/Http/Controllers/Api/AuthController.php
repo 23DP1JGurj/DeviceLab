@@ -22,7 +22,6 @@ class AuthController extends Controller
                 'required',
                 'string',
                 'min:8',
-                'confirmed',
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     if (! preg_match('/[A-Z]/', (string) $value)) {
                         $fail('Parolei jāsatur vismaz viens lielais burts A-Z.');
@@ -37,7 +36,14 @@ class AuthController extends Controller
                     }
                 },
             ],
+            'password_confirmation' => ['required', 'string'],
         ]);
+
+        if ($data['password'] !== $data['password_confirmation']) {
+            throw ValidationException::withMessages([
+                'password_confirmation' => ['Paroles nesakrīt.'],
+            ]);
+        }
 
         $user = User::create([
             'name' => trim($data['name']),

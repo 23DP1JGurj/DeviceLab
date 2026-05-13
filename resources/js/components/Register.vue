@@ -65,33 +65,67 @@
           <span class="authFieldError">{{ fieldError('phone') }}</span>
         </label>
 
-        <label class="floatingField">
+        <div class="floatingField passwordField">
           <input
             class="floatingInput"
             :class="{ hasError: fieldErrors.password?.length }"
             v-model="form.password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             autocomplete="new-password"
             placeholder=" "
             required
           />
           <span class="floatingLabel">Parole</span>
+          <button
+            class="passwordToggle"
+            type="button"
+            :aria-label="showPassword ? 'Paslēpt paroli' : 'Rādīt paroli'"
+            @click="showPassword = !showPassword"
+          >
+            <svg v-if="!showPassword" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 3l18 18"/>
+              <path d="M10.6 5.2A10.7 10.7 0 0 1 12 5c6 0 9.5 7 9.5 7a17.8 17.8 0 0 1-3.1 4.1"/>
+              <path d="M6.4 6.8C3.9 8.5 2.5 12 2.5 12s3.5 7 9.5 7c1.6 0 3-.4 4.2-1"/>
+              <path d="M9.9 9.9A3 3 0 0 0 14.1 14"/>
+            </svg>
+          </button>
           <span class="authFieldError">{{ passwordFieldError }}</span>
-        </label>
+        </div>
 
-        <label class="floatingField">
+        <div class="floatingField passwordField">
           <input
             class="floatingInput"
             :class="{ hasError: fieldErrors.password_confirmation?.length }"
             v-model="form.password_confirmation"
-            type="password"
+            :type="showPasswordConfirmation ? 'text' : 'password'"
             autocomplete="new-password"
             placeholder=" "
             required
           />
           <span class="floatingLabel">Atkārto paroli</span>
+          <button
+            class="passwordToggle"
+            type="button"
+            :aria-label="showPasswordConfirmation ? 'Paslēpt paroli' : 'Rādīt paroli'"
+            @click="showPasswordConfirmation = !showPasswordConfirmation"
+          >
+            <svg v-if="!showPasswordConfirmation" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 3l18 18"/>
+              <path d="M10.6 5.2A10.7 10.7 0 0 1 12 5c6 0 9.5 7 9.5 7a17.8 17.8 0 0 1-3.1 4.1"/>
+              <path d="M6.4 6.8C3.9 8.5 2.5 12 2.5 12s3.5 7 9.5 7c1.6 0 3-.4 4.2-1"/>
+              <path d="M9.9 9.9A3 3 0 0 0 14.1 14"/>
+            </svg>
+          </button>
           <span class="authFieldError">{{ fieldError('password_confirmation') }}</span>
-        </label>
+        </div>
       </div>
 
       <div v-if="passwordErrorSummary" class="authAlert compactAuthAlert">
@@ -132,6 +166,8 @@ const fullName = computed(() => [form.first_name, form.last_name].filter(Boolean
 const loading = ref(false)
 const serverError = ref('')
 const fieldErrors = ref({})
+const showPassword = ref(false)
+const showPasswordConfirmation = ref(false)
 const passwordFieldError = computed(() => fieldErrors.value.password?.length ? 'Parole neatbilst prasībām.' : '')
 const passwordErrorSummary = computed(() => {
   if (!fieldErrors.value.password?.length) return ''

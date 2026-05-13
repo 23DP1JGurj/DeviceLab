@@ -237,6 +237,42 @@ defineProps({
   margin-top: 7px;
 }
 
+:global(.passwordField .floatingInput) {
+  padding-right: 54px;
+}
+
+:global(.passwordToggle) {
+  position: absolute;
+  top: 13px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+:global(.passwordToggle:hover) {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+}
+
+:global(.passwordToggle svg) {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 :global(.floatingField .authFieldError span) {
   display: block;
 }
