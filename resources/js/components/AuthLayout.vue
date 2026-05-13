@@ -175,7 +175,7 @@ defineProps({
   width: 100%;
   min-width: 0;
   min-height: 60px;
-  padding: 22px 16px 9px;
+  padding: 19px 16px 12px;
   border: 1px solid #d8e0ee;
   border-radius: 16px;
   background: #fff;
@@ -183,6 +183,7 @@ defineProps({
   color: #071833;
   font: inherit;
   font-size: 16px;
+  line-height: 1.25;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
