@@ -23,9 +23,7 @@
     <div class="container">
       <div class="header-row">
         <a class="brand" href="#top">
-          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <path d="M24 6c4.9 0 8.4 3.5 8.4 8.4 0 1.1-.2 2.1-.6 3.1 1-.4 2-.6 3.1-.6 4.9 0 8.4 3.5 8.4 8.4S39.8 34 34.9 34c-1.1 0-2.1-.2-3.1-.6.4 1 .6 2 .6 3.1 0 4.9-3.5 8.4-8.4 8.4s-8.4-3.5-8.4-8.4c0-1.1.2-2.1.6-3.1-1 .4-2 .6-3.1.6C8.2 34 4.7 30.5 4.7 25.6S8.2 17.2 13.1 17.2c1.1 0 2.1.2 3.1.6-.4-1-.6-2-.6-3.1C15.6 9.5 19.1 6 24 6Z" fill="rgba(255,255,255,.92)"/>
-          </svg>
+          <img class="brand-logo" :src="logoUrl" alt="" aria-hidden="true" />
           <span>DeviceLab</span>
         </a>
 
@@ -643,6 +641,7 @@ import AccountMenu from './AccountMenu.vue'
 import { currentUser, defaultRouteForUser, initAuth, isLoggedIn } from '../auth'
 
 const ORDER_DRAFT_STORAGE_KEY = 'devicelab:orderDraft:v1'
+const logoUrl = '/images/devicelab-logo.png'
 
 const root = ref(null)
 const router = useRouter()
@@ -937,7 +936,7 @@ onBeforeUnmount(() => {
       font-weight:800;
       letter-spacing:.2px;
     }
-    .brand svg{width:34px;height:34px; flex:0 0 auto}
+    .brand-logo{width:34px;height:34px; flex:0 0 auto; object-fit:contain; display:block}
     .nav{
       display:flex;
       align-items:center;

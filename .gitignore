@@ -12,6 +12,8 @@
 /.vscode
 /.zed
 /auth.json
+/ChatGPT Image*.png
+/edited-image-*.png
 /node_modules
 /public/build
 /public/hot
