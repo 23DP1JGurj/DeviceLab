@@ -59,6 +59,7 @@
             type="text"
             autocomplete="tel"
             placeholder=" "
+            @input="form.phone = sanitizePhoneInput(form.phone)"
             required
           />
           <span class="floatingLabel">Tālrunis</span>
@@ -150,6 +151,7 @@ import { computed, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { defaultRouteForUser, register } from '../auth'
 import AuthLayout from './AuthLayout.vue'
+import { isValidPhoneInput, sanitizePhoneInput } from '../phoneInput'
 
 const router = useRouter()
 
@@ -168,9 +170,10 @@ const serverError = ref('')
 const fieldErrors = ref({})
 const showPassword = ref(false)
 const showPasswordConfirmation = ref(false)
-const passwordFieldError = computed(() => fieldErrors.value.password?.length ? 'Parole neatbilst prasībām.' : '')
+const passwordFieldError = computed(() => fieldErrors.value.password?.[0] || '')
 const passwordErrorSummary = computed(() => {
   if (!fieldErrors.value.password?.length) return ''
+  if (fieldErrors.value.password[0] !== 'Parole neatbilst prasībām.') return ''
   return 'Parole neatbilst prasībām. Tai jābūt vismaz 8 simbolus garai, ar lielo burtu, ciparu un speciālo simbolu.'
 })
 
@@ -183,15 +186,70 @@ function fieldError(field) {
   return fieldErrors.value[field]?.[0] || ''
 }
 
+function validateForm() {
+  const errors = {}
+  const phone = sanitizePhoneInput(form.phone)
+
+  if (!form.first_name.trim()) {
+    errors.first_name = ['Vārds ir obligāts.']
+  }
+
+  if (!form.last_name.trim()) {
+    errors.last_name = ['Uzvārds ir obligāts.']
+  }
+
+  if (!form.email.trim()) {
+    errors.email = ['E-pasts ir obligāts.']
+  } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+    errors.email = ['Ievadi derīgu e-pasta adresi.']
+  }
+
+  if (!phone) {
+    errors.phone = ['Tālrunis ir obligāts.']
+  } else if (!isValidPhoneInput(phone)) {
+    errors.phone = ['Tālruņa numurā drīkst būt tikai cipari un sākumā simbols +.']
+  } else if (phone.length < 6) {
+    errors.phone = ['Tālrunim jābūt vismaz 6 ciparus garam.']
+  }
+
+  if (!form.password) {
+    errors.password = ['Parole ir obligāta.']
+  } else if (
+    form.password.length < 8
+    || !/[A-Z]/.test(form.password)
+    || !/[0-9]/.test(form.password)
+    || !/[!@#$%^&*_\-+=?]/.test(form.password)
+  ) {
+    errors.password = ['Parole neatbilst prasībām.']
+  }
+
+  if (!form.password_confirmation) {
+    errors.password_confirmation = ['Atkārtotā parole ir obligāta.']
+  } else if (!errors.password && form.password !== form.password_confirmation) {
+    errors.password_confirmation = ['Paroles nesakrīt.']
+  }
+
+  return errors
+}
+
 async function submit() {
   loading.value = true
   resetErrors()
 
+  const validationErrors = validateForm()
+
+  if (Object.keys(validationErrors).length > 0) {
+    fieldErrors.value = validationErrors
+    loading.value = false
+    return
+  }
+
   try {
     const user = await register({
       name: fullName.value,
+      last_name: form.last_name,
       email: form.email,
-      phone: form.phone,
+      phone: sanitizePhoneInput(form.phone),
       password: form.password,
       password_confirmation: form.password_confirmation,
     })

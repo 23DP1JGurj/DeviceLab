@@ -17,8 +17,10 @@ class ContactController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:150'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'max:30', 'regex:/^\+?\d+$/'],
             'message' => ['required', 'string', 'max:3000'],
+        ], [
+            'phone.regex' => 'Tālruņa numurā drīkst būt tikai cipari un sākumā simbols +.',
         ]);
 
         $message = ContactMessage::create($data);

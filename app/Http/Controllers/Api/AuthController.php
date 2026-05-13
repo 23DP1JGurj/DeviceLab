@@ -16,8 +16,9 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:255'],
+            'last_name' => ['required', 'string', 'min:1', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['required', 'string', 'min:6', 'max:30'],
+            'phone' => ['required', 'string', 'min:6', 'max:30', 'regex:/^\+?\d+$/'],
             'password' => [
                 'required',
                 'string',
@@ -37,6 +38,9 @@ class AuthController extends Controller
                 },
             ],
             'password_confirmation' => ['required', 'string'],
+        ], [
+            'last_name.required' => 'Uzvārds ir obligāts.',
+            'phone.regex' => 'Tālruņa numurā drīkst būt tikai cipari un sākumā simbols +.',
         ]);
 
         if ($data['password'] !== $data['password_confirmation']) {
@@ -122,7 +126,9 @@ class AuthController extends Controller
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
-            'phone' => ['nullable', 'string', 'min:6', 'max:30'],
+            'phone' => ['nullable', 'string', 'min:6', 'max:30', 'regex:/^\+?\d+$/'],
+        ], [
+            'phone.regex' => 'Tālruņa numurā drīkst būt tikai cipari un sākumā simbols +.',
         ]);
 
         $user->fill([

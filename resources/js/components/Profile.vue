@@ -74,7 +74,13 @@
 
           <label class="field">
             <span class="label">Tālrunis</span>
-            <input class="control" v-model.trim="form.phone" type="text" autocomplete="tel" />
+            <input
+              class="control"
+              v-model.trim="form.phone"
+              type="text"
+              autocomplete="tel"
+              @input="form.phone = sanitizePhoneInput(form.phone)"
+            />
           </label>
         </div>
 
@@ -141,6 +147,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardTopbar from './DashboardTopbar.vue'
 import { currentUser, initAuth, logout, updatePassword, updateProfile } from '../auth'
+import { isValidPhoneInput, sanitizePhoneInput } from '../phoneInput'
 
 const router = useRouter()
 
@@ -205,6 +212,10 @@ function validateForm() {
     return 'Ievadi derīgu e-pasta adresi.'
   }
 
+  if (!isValidPhoneInput(form.phone)) {
+    return 'Tālruņa numurā drīkst būt tikai cipari un sākumā simbols +.'
+  }
+
   if (form.phone.trim() && form.phone.trim().length < 6) {
     return 'Tālrunim jābūt vismaz 6 rakstzīmes garam.'
   }
@@ -228,7 +239,7 @@ async function submit() {
     await updateProfile({
       name: fullName(),
       email: form.email.trim(),
-      phone: form.phone.trim() || null,
+      phone: sanitizePhoneInput(form.phone).trim() || null,
     })
 
     success.value = 'Profils saglabāts.'
