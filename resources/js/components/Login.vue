@@ -64,17 +64,6 @@
       Nav konta?
       <RouterLink to="/register">Reģistrēties</RouterLink>
     </div>
-
-    <div v-if="isDev" class="devAccounts">
-      <button class="devToggle" type="button" @click="showTestAccounts = !showTestAccounts">
-        Testa konti
-      </button>
-      <div v-if="showTestAccounts" class="devAccountBox">
-        <div><b>admin</b> admin@devicelab.local / password</div>
-        <div><b>staff</b> staff@devicelab.local / password</div>
-        <div><b>client</b> client@devicelab.local / password</div>
-      </div>
-    </div>
   </AuthLayout>
 </template>
 
@@ -85,7 +74,6 @@ import { defaultRouteForUser, login } from '../auth'
 import AuthLayout from './AuthLayout.vue'
 
 const router = useRouter()
-const isDev = import.meta.env.DEV
 
 const form = reactive({
   email: '',
@@ -93,7 +81,6 @@ const form = reactive({
 })
 
 const loading = ref(false)
-const showTestAccounts = ref(false)
 const serverError = ref('')
 const fieldErrors = ref({})
 const showPassword = ref(false)

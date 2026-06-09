@@ -2602,10 +2602,27 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 980px) {
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+
   .dashboardGrid,
-  .requestTypeGrid,
+  .formCard,
+  .summaryCard {
+    width: 100%;
+    min-width: 0;
+  }
+
   .summaryCard {
     position: static;
+  }
+
+  .requestTypeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid2 {
+    grid-template-columns: 1fr;
   }
 
   .lineItemCard {
@@ -2614,6 +2631,27 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
+  .page {
+    padding-left: 12px;
+    padding-right: 12px;
+    overflow-x: hidden;
+  }
+
+  .formCard,
+  .summaryCard {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .cardTitle {
+    font-size: 18px;
+  }
+
+  .cardSubtitle {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
   .topActions {
     width: 100%;
     justify-content: space-between;
